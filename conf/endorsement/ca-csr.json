@@ -1,0 +1,49 @@
+{
+  "Issuer": {
+    "Country": [
+      "CN"
+    ],
+    "Organization": [
+      "Nanhulab"
+    ],
+    "OrganizationalUnit": [
+      "Nanhulab"
+    ],
+    "Locality": [
+      "Jiaxing"
+    ],
+    "Province": [
+      "Zhejiang"
+    ],
+    "StreetAddress": null,
+    "PostalCode": null,
+    "SerialNumber": "",
+    "CommonName": "Trust Cluster Attestation Server Root CA",
+    "Names": null,
+    "ExtraNames": null
+  },
+  "Subject": {
+    "Country": [
+      "CN"
+    ],
+    "Organization": [
+      "Nanhulab"
+    ],
+    "OrganizationalUnit": [
+      "Nanhulab"
+    ],
+    "Locality": [
+      "Jiaxing"
+    ],
+    "Province": [
+      "Zhejiang"
+    ],
+    "StreetAddress": null,
+    "PostalCode": null,
+    "SerialNumber": "",
+    "CommonName": "Trust Cluster Attestation Server Root CA",
+    "Names": null,
+    "ExtraNames": null
+  },
+  "IsCA": true
+}
