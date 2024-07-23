@@ -29,7 +29,7 @@ func (uc PolicyController) CreatePolicy(c *gin.Context) {
 		return
 	}
 
-	mesg, baseRes := uc.HandleSuccess(200, "get report successful", "", c)
+	mesg, baseRes := uc.HandleSuccess(200, "add policy successful", "", c)
 
 	res := PolicyIdRes{
 		*baseRes,

@@ -21,10 +21,6 @@ var (
 	CAJWK        jwk.Key
 )
 
-const (
-	issuer = "datakeeper"
-)
-
 func readKey(filename string) []byte {
 	// read the raw contents of the file
 	data, err := os.ReadFile(filename)

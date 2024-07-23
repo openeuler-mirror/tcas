@@ -6,7 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"tcas/apprasisal"
 	"tcas/consts"
-	"tcas/report/attestation_c"
 )
 
 type ReportRes struct {
@@ -23,36 +22,6 @@ type AttestationController struct {
 	DefaultController
 }
 
-func (uc AttestationController) GetReport(c *gin.Context) {
-	var req attestation_c.ReportDetailInfo
-	if err := c.BindJSON(&req); err != nil {
-		message := fmt.Sprintf("get body error. %+v", err)
-		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE__JSON__UNMARSHAL_FAILED, message, "", c)
-		logrus.Error(errMes)
-		return
-	}
-
-	report, err := attestation_c.GetReport(req.UserData, false)
-	if err != nil {
-		message := fmt.Sprintf("get report failed, error: %s", err.Error())
-		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_GET_REPORT_FAILED, message, "", c)
-		logrus.Error(errMes)
-		return
-	}
-
-	reportDetail := attestation_c.GetReportDetailInfo(report)
-
-	mesg, baseRes := uc.HandleSuccess(200, "get report successful", "", c)
-
-	res := ReportRes{
-		*baseRes,
-		reportDetail,
-	}
-
-	c.JSON(200, res)
-	logrus.Info(mesg)
-}
-
 func (uc AttestationController) AttestTrustNode(c *gin.Context) {
 	var evidence apprasisal.NodeAttestInfo
 	if err := c.BindJSON(&evidence); err != nil {
@@ -61,7 +30,7 @@ func (uc AttestationController) AttestTrustNode(c *gin.Context) {
 		logrus.Error(errMes)
 		return
 	}
-
+	fmt.Println(evidence.Report.Parameter)
 	re, err := apprasisal.TrustNodeAppraisal(&evidence)
 	if err != nil {
 		message := fmt.Sprintf("node attest failed, error: %s", err)

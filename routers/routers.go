@@ -12,7 +12,7 @@ func InitRouters() *gin.Engine {
 	attest := router.Group("/v1/attest")
 
 	attestationController := controllers.AttestationController{}
-	attest.POST("/report", attestationController.GetReport)
+	//attest.POST("/report", attestationController.GetReport)
 	attest.POST("", attestationController.AttestTrustNode)
 
 	policy := router.Group("/v1/policy")

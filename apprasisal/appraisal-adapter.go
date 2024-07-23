@@ -13,13 +13,15 @@ import (
 )
 
 type TrustDeviceReport struct {
-	DeviceType   string `json:"type"`
-	DeviceReport string `json:"device_report"`
+	DeviceType   string      `json:"type"`
+	DeviceReport string      `json:"device_report"`
+	Parameter    interface{} `json:"parameter"`
 }
 
 type NodeEvidence struct {
 	Tee         string               `json:"tee"`
 	TeeReport   string               `json:"tee_report"`
+	Parameter   interface{}          `json:"parameter"`
 	TrustDevice []*TrustDeviceReport `json:"trust_devices"`
 	RuntimeData interface{}          `json:"runtime_data"`
 	InitData    string               `json:"init_data"`
@@ -143,7 +145,7 @@ func NodeVerify(report *NodeEvidence) (*TrustNodeVerifiedResult, error) {
 		return nil, fmt.Errorf("tee type [%s] is not support now", report.Tee)
 	}
 
-	teeVerifyResult, err := tees.Verifiers[report.Tee].VerifyTeeReport(reportData)
+	teeVerifyResult, err := tees.Verifiers[report.Tee].VerifyTeeReport(reportData, report.Parameter)
 	if err != nil {
 		return nil, fmt.Errorf("verify tee report failed, error: %s", err)
 	}
@@ -179,7 +181,7 @@ func TrustDeviceVerify(t *TrustDeviceReport) (tees.VerifyTeeResult, error) {
 		return nil, fmt.Errorf("tee device [%s] is not support now", t.DeviceType)
 	}
 
-	verifyResult, err := tees.Verifiers[t.DeviceType].VerifyTeeReport(reportData)
+	verifyResult, err := tees.Verifiers[t.DeviceType].VerifyTeeReport(reportData, t.Parameter)
 	if err != nil {
 		return nil, fmt.Errorf("verify tee report failed, error: %s", err)
 	}
@@ -214,7 +216,7 @@ func TrustNodePolicyEvaluate(policyIds []string, trustNode *TrustNodeVerifiedRes
 			return nil, fmt.Errorf("decode the rego policy of %s failed, error:%s", policy.Id, err)
 		}
 
-		logrus.Debug("policy is %s", policy.Rego)
+		logrus.Debugf("policy is %s", policy.Rego)
 		pe := policyengine.NewPolicyExecutor("data.trustnode", string(policyString))
 		regoResultSet, err := pe.Evaluate(input)
 		if err != nil {

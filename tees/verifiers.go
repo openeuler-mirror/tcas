@@ -9,7 +9,7 @@ func init() {
 }
 
 type TeeVerifier interface {
-	VerifyTeeReport(report []byte) (VerifyTeeResult, error)
+	VerifyTeeReport(report []byte, parameter interface{}) (VerifyTeeResult, error)
 	GetUserData(result VerifyTeeResult) (string, error)
 	GetInitData(result VerifyTeeResult) (string, error)
 }

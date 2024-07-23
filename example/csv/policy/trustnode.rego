@@ -1,4 +1,4 @@
-package example
+package trustnode
 
 import future.keywords.every
 default trust_node := false
