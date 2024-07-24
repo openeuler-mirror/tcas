@@ -3,6 +3,7 @@ package models
 const (
 	TABLE_POLICY = "t_policy"
 	TABLE_NONCE  = "t_nonce"
+	TABLE_SECRET = "t_secret"
 )
 
 type Resp struct {

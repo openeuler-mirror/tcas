@@ -17,6 +17,7 @@ func init() {
 
 	ns_attest := beego.NewNamespace("/v1/attest",
 		beego.NSRouter("", &controllers.AttestationController{}, "post:AttestTrustNode"),
+		beego.NSRouter("/getsecret", &controllers.AttestationController{}, "post:GetSecretById"),
 	)
 	beego.AddNamespace(ns_attest)
 
@@ -35,4 +36,12 @@ func init() {
 		beego.NSRouter("", &controllers.NonceController{}, "get:GetNonce"),
 	)
 	beego.AddNamespace(ns_nonce)
+
+	ns_secret := beego.NewNamespace("/v1/secret",
+		beego.NSRouter("", &controllers.SecretController{}, "post:AddSecret"),
+		beego.NSRouter("/:secretId", &controllers.SecretController{}, "delete:DeleteSecret"),
+		beego.NSRouter("", &controllers.SecretController{}, "put:UpdateSecret"),
+		beego.NSRouter("/list", &controllers.SecretController{}, "get:GetSecretBriefList"),
+	)
+	beego.AddNamespace(ns_secret)
 }
