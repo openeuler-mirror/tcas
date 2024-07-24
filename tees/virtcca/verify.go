@@ -13,8 +13,8 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"github.com/beego/beego/v2/core/logs"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus"
 	"os"
 	"path"
 	"tcas/tees"
@@ -23,7 +23,7 @@ import (
 
 func init() {
 	tees.Register("virtcca", NewVerifier())
-	logrus.Info("virtcca verifier registered")
+	logs.Info("virtcca verifier registered")
 }
 
 type Verifier struct{}
@@ -97,7 +97,7 @@ func (v *Verifier) VerifyTeeReport(report []byte, parameter interface{}) (tees.V
 	if err != nil {
 		return nil, fmt.Errorf("marshal cvm Claims failed, error: %s", err.Error())
 	}
-	logrus.Debugf("attestation result is %s", claims)
+	logs.Debug("attestation result is %s", claims)
 
 	ar := tees.VerifyTeeResult{}
 	if err := json.Unmarshal(claims, &ar); err != nil {

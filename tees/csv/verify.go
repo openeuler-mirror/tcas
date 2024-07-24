@@ -12,7 +12,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"tcas/tees"
 	"unsafe"
 )
@@ -86,7 +85,7 @@ type ReportDetailInfo struct {
 
 func init() {
 	tees.Register("csv", NewVerifier())
-	logrus.Info("csv verifier registered")
+	logs.Info("csv verifier registered")
 }
 
 type Verifier struct{}

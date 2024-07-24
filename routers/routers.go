@@ -1,32 +1,38 @@
 package routers
 
 import (
-	"github.com/gin-gonic/gin"
+	beego "github.com/beego/beego/v2/server/web"
+	"github.com/beego/beego/v2/server/web/filter/cors"
 	"tcas/controllers"
 )
 
-func InitRouters() *gin.Engine {
-	gin.SetMode(gin.ReleaseMode)
-	router := gin.Default()
+func init() {
+	beego.InsertFilter("*", beego.BeforeRouter, cors.Allow(&cors.Options{
+		AllowAllOrigins:  true,
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"*", "Authorization"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
-	attest := router.Group("/v1/attest")
+	ns_attest := beego.NewNamespace("/v1/attest",
+		beego.NSRouter("", &controllers.AttestationController{}, "post:AttestTrustNode"),
+	)
+	beego.AddNamespace(ns_attest)
 
-	attestationController := controllers.AttestationController{}
-	//attest.POST("/report", attestationController.GetReport)
-	attest.POST("", attestationController.AttestTrustNode)
+	ns_policy := beego.NewNamespace("/v1/policy",
+		beego.NSRouter("", &controllers.PolicyController{}, "post:CreatePolicy"),
+		beego.NSRouter("/:policyId", &controllers.PolicyController{}, "delete:DeletePolicy"),
+	)
+	beego.AddNamespace(ns_policy)
 
-	policy := router.Group("/v1/policy")
-	policyController := controllers.PolicyController{}
-	policy.POST("", policyController.CreatePolicy)
-	policy.DELETE("/:policyId", policyController.DeletePolicy)
+	ns_pki := beego.NewNamespace("/v1/pki",
+		beego.NSRouter("/ca", &controllers.EndorsementController{}, "get:GetCa"),
+	)
+	beego.AddNamespace(ns_pki)
 
-	pki := router.Group("/v1/pki")
-	endorsementController := controllers.EndorsementController{}
-	pki.GET("/ca", endorsementController.GetCa)
-
-	nonce := router.Group("/v1/nonce")
-	nonceController := controllers.NonceController{}
-	nonce.GET("", nonceController.GetNonce)
-
-	return router
+	ns_nonce := beego.NewNamespace("/v1/nonce",
+		beego.NSRouter("", &controllers.NonceController{}, "get:GetNonce"),
+	)
+	beego.AddNamespace(ns_nonce)
 }

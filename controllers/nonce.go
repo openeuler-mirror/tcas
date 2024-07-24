@@ -2,8 +2,7 @@ package controllers
 
 import (
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
+	"github.com/beego/beego/v2/core/logs"
 	"tcas/apprasisal"
 	"tcas/consts"
 )
@@ -12,21 +11,22 @@ type NonceController struct {
 	DefaultController
 }
 
-func (uc NonceController) GetNonce(c *gin.Context) {
+func (uc NonceController) GetNonce() {
 	nonce, err := apprasisal.GNonceManager.GenerateNonce()
 	if err != nil {
 		message := fmt.Sprintf("get nonce failed, error: %s", err.Error())
-		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_GENERATE_NONCE_FAILED, message, "", c)
-		logrus.Error(errMes)
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_GENERATE_NONCE_FAILED, message, "")
+		logs.Error(errMes)
 		return
 	}
 
-	mesg, baseRes := uc.HandleSuccess(200, "get nonce successful", "", c)
+	mesg, baseRes := uc.HandleSuccess(200, "get nonce successful", "")
 	res := DataRes{
 		BaseRes: *baseRes,
 		Data:    nonce,
 	}
-	c.JSON(200, res)
-	logrus.Info(mesg)
+	uc.Data["json"] = res
+	uc.ServeJSON()
+	logs.Info(mesg)
 	return
 }

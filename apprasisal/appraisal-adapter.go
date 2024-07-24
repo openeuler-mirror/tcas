@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/sirupsen/logrus"
+	"github.com/beego/beego/v2/core/logs"
 	"tcas/models"
 	"tcas/policyengine"
 	"tcas/tees"
@@ -59,7 +59,7 @@ type TrustClusterClaims struct {
 
 func UserDataCheck(attestResult tees.VerifyTeeResult, nonce, runtimeData string) error {
 	if nonce == "" && runtimeData == "" {
-		logrus.Info("skip user data check")
+		logs.Info("skip user data check")
 		return nil
 	}
 
@@ -80,9 +80,9 @@ func UserDataCheck(attestResult tees.VerifyTeeResult, nonce, runtimeData string)
 			}
 		}
 
-		logrus.Debugf("user data is %s", userData)
+		logs.Debug("user data is %s", userData)
 		expectedUserData := fmt.Sprintf("%x", sha256.Sum256([]byte(nonce+runtimeData)))
-		logrus.Debugf("expected data is %s", expectedUserData)
+		logs.Debug("expected data is %s", expectedUserData)
 		if userData != expectedUserData {
 			return fmt.Errorf("userData is not correct")
 		}
@@ -104,7 +104,7 @@ func TrustNodeAppraisal(attestInfo *NodeAttestInfo) (signedToken string, err err
 
 	err = UserDataCheck(verifyTeeResult.Tee, attestInfo.Nonce, "")
 	if err != nil {
-		logrus.Errorf("user data check failed, error:%s", err)
+		logs.Error("user data check failed, error:%s", err)
 		return "", fmt.Errorf("user data or nonce not correct")
 	}
 
@@ -121,11 +121,11 @@ func TrustNodeAppraisal(attestInfo *NodeAttestInfo) (signedToken string, err err
 	finalToken, err := token.GenerateToken(claims)
 	if err != nil {
 		errMsg := fmt.Sprintf("generate token failed, error: %s", err)
-		logrus.Errorf(errMsg)
+		logs.Error(errMsg)
 		return "", fmt.Errorf(errMsg)
 	}
 
-	logrus.Debugf("token is %s", finalToken)
+	logs.Debug("token is %s", finalToken)
 
 	return finalToken, nil
 
@@ -150,7 +150,7 @@ func NodeVerify(report *NodeEvidence) (*TrustNodeVerifiedResult, error) {
 		return nil, fmt.Errorf("verify tee report failed, error: %s", err)
 	}
 	teeVerifyResult["type"] = report.Tee
-	logrus.Debugf("verify result is %v", teeVerifyResult)
+	logs.Debug("verify result is %v", teeVerifyResult)
 
 	deviceVerifyResults := make([]tees.VerifyTeeResult, 0)
 	for _, d := range report.TrustDevice {
@@ -186,7 +186,7 @@ func TrustDeviceVerify(t *TrustDeviceReport) (tees.VerifyTeeResult, error) {
 		return nil, fmt.Errorf("verify tee report failed, error: %s", err)
 	}
 	verifyResult["type"] = t.DeviceType
-	logrus.Debugf("verify result is %v", verifyResult)
+	logs.Debug("verify result is %v", verifyResult)
 
 	return verifyResult, nil
 }
@@ -216,25 +216,25 @@ func TrustNodePolicyEvaluate(policyIds []string, trustNode *TrustNodeVerifiedRes
 			return nil, fmt.Errorf("decode the rego policy of %s failed, error:%s", policy.Id, err)
 		}
 
-		logrus.Debugf("policy is %s", policy.Rego)
+		logs.Debug("policy is %s", policy.Rego)
 		pe := policyengine.NewPolicyExecutor("data.trustnode", string(policyString))
 		regoResultSet, err := pe.Evaluate(input)
 		if err != nil {
 			errmsg := fmt.Sprintf("policy evaluate failed, error:%s", err)
-			logrus.Errorf(errmsg)
+			logs.Error(errmsg)
 			return nil, fmt.Errorf(errmsg)
 		}
-		logrus.Debugf("policy evaluate result is %v", regoResultSet[0].Expressions[0].Value)
+		logs.Debug("policy evaluate result is %v", regoResultSet[0].Expressions[0].Value)
 		regoResult, err := anyToMap(regoResultSet[0].Expressions[0].Value)
 		if err != nil {
 			errmsg := fmt.Sprintf("rego result format error")
-			logrus.Errorf(errmsg)
+			logs.Error(errmsg)
 			return nil, fmt.Errorf(errmsg)
 		}
 
 		if regoResult[models.NodeType] == false {
 			errmsg := fmt.Sprintf("policy [%s] does not match", policy.Id)
-			logrus.Errorf(errmsg)
+			logs.Error(errmsg)
 			return nil, fmt.Errorf(errmsg)
 		}
 
@@ -274,25 +274,25 @@ func TrustClusterPolicyEvaluate(policyIds []string, trustNodes []*TrustNodeVerif
 			return nil, fmt.Errorf("decode the rego policy of %s failed, error:%s", policy.Id, err)
 		}
 
-		logrus.Debug("policy is %s", policy.Rego)
+		logs.Debug("policy is %s", policy.Rego)
 		pe := policyengine.NewPolicyExecutor("data.trustcluster", string(policyString))
 		regoResultSet, err := pe.Evaluate(input)
 		if err != nil {
 			errmsg := fmt.Sprintf("policy evaluate failed, error:%s", err)
-			logrus.Errorf(errmsg)
+			logs.Error(errmsg)
 			return nil, fmt.Errorf(errmsg)
 		}
-		logrus.Debugf("policy evaluate result is %v", regoResultSet[0].Expressions[0].Value)
+		logs.Debug("policy evaluate result is %v", regoResultSet[0].Expressions[0].Value)
 		regoResult, err := anyToMap(regoResultSet[0].Expressions[0].Value)
 		if err != nil {
 			errmsg := fmt.Sprintf("rego result format error")
-			logrus.Errorf(errmsg)
+			logs.Error(errmsg)
 			return nil, fmt.Errorf(errmsg)
 		}
 
 		if regoResult[models.NodeType] == false {
 			errmsg := fmt.Sprintf("policy [%s] does not match", policy.Id)
-			logrus.Errorf(errmsg)
+			logs.Error(errmsg)
 			return nil, fmt.Errorf(errmsg)
 		}
 
@@ -334,11 +334,11 @@ func TrustClusterVerify(attestInfo *ClusterAttestInfo) (signedToken string, err 
 	finalToken, err := token.GenerateToken(claims)
 	if err != nil {
 		errMsg := fmt.Sprintf("generate token failed, error: %s", err)
-		logrus.Errorf(errMsg)
+		logs.Error(errMsg)
 		return "", fmt.Errorf(errMsg)
 	}
 
-	logrus.Debugf("token is %s", finalToken)
+	logs.Debug("token is %s", finalToken)
 
 	return finalToken, nil
 }

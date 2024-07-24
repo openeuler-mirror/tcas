@@ -12,11 +12,10 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"github.com/beego/beego/v2/core/logs"
 	"os"
 	"strconv"
 	"unsafe"
-
-	"github.com/sirupsen/logrus"
 )
 
 const SHA_LEN = 32
@@ -136,7 +135,8 @@ func GetReport(userdata string, sealingkey bool) (*CsvAttestationReport, error) 
 		}
 		kvm_hc_vm_attestation = uint64(k)
 	}
-	logrus.Debug("KVM_HC_VM_ATTESTATION is ", kvm_hc_vm_attestation)
+
+	logs.Debug("KVM_HC_VM_ATTESTATION is ", kvm_hc_vm_attestation)
 	CCsvAttestationReport := (*C.Csv_attestation_report)(unsafe.Pointer(&GoCsvAttestationReport))
 	ret := C.get_attestation_report_use_vmmcall(CCsvAttestationReport, C.CString(userdata), C.uint(kvm_hc_vm_attestation))
 	//ret := C.get_attestation_report_use_ioctl(CCsvAttestationReport, C.CString(userdata))
@@ -156,7 +156,7 @@ func GetReportDetailInfo(d *CsvAttestationReport) *ReportDetailInfo {
 	buf, err := MarshalCsvAttestationReport(d)
 	if err != nil {
 		message := fmt.Sprintf("change report to binary failed: %s", err.Error())
-		logrus.Error(message)
+		logs.Error(message)
 	}
 	rdi.FullReport = base64.StdEncoding.EncodeToString(buf)
 
@@ -221,7 +221,7 @@ func GetSealingKey() (sealingkey string, err error) {
 	report, err := GetReport("get-sealing-key", true)
 	if err != nil {
 		message := fmt.Sprintf("get sealing key failed, error: %s", err.Error())
-		logrus.Error(message)
+		logs.Error(message)
 		return "", err
 	}
 

@@ -3,8 +3,8 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
+	"github.com/beego/beego/v2/core/logs"
+	beego "github.com/beego/beego/v2/server/web"
 	"io"
 	"net/http"
 	"os"
@@ -83,58 +83,65 @@ func ErrorRes(code int, message string) *BaseRes {
 }
 
 type DefaultController struct {
+	beego.Controller
 }
 
 func (f *DefaultController) Prepare() {
 
 }
 
-func (f *DefaultController) HandleErrorStatusBadRequest(code int, message string, addition string, c *gin.Context) (errMesg string) {
+func (f *DefaultController) HandleErrorStatusBadRequest(code int, message string, addition string) (errMesg string) {
 	var userName string
 
-	clientIp := c.Request.Header.Get("X-Real-ip")
+	clientIp := f.Ctx.Request.Header.Get("X-Real-ip")
 	if clientIp == "" {
-		clientIp = c.ClientIP()
+		clientIp = f.Ctx.Input.IP()
 	}
 	requestInfo, err := json.Marshal(RequestMessageData{
-		URI:            c.Request.URL.String(),
-		Method:         c.Request.Method,
+		URI:            f.Ctx.Input.URI(),
+		Method:         f.Ctx.Request.Method,
 		User:           userName,
 		IP:             clientIp,
 		ResponseStatus: code,
 	})
 	if err != nil {
-		logrus.Errorf("err:", err.Error())
+		logs.Error("err:", err.Error())
 		return fmt.Sprintf("message: %s; addition: %s; request: %s", message, addition, err.Error())
 	}
 
-	c.JSON(http.StatusBadRequest, ErrorRes(code, message))
+	f.Ctx.Output.SetStatus(http.StatusBadRequest)
+	f.Data["json"] = ErrorRes(code, message)
+	f.ServeJSON()
+
 	return fmt.Sprintf("message: %s; addition: %s; request: %s", message, addition, requestInfo)
 }
 
-func (f *DefaultController) HandleErrorStatusUnauthorized(code int, message string, addition string, c *gin.Context) (errMesg string) {
+func (f *DefaultController) HandleErrorStatusUnauthorized(code int, message string, addition string) (errMesg string) {
 	var userName string
 
-	clientIp := c.Request.Header.Get("X-Real-ip")
+	clientIp := f.Ctx.Request.Header.Get("X-Real-ip")
 	if clientIp == "" {
-		clientIp = c.ClientIP()
+		clientIp = f.Ctx.Input.IP()
 	}
 	requestInfo, err := json.Marshal(RequestMessageData{
-		URI:            c.Request.URL.String(),
-		Method:         c.Request.Method,
+		URI:            f.Ctx.Input.URI(),
+		Method:         f.Ctx.Request.Method,
 		User:           userName,
 		IP:             clientIp,
 		ResponseStatus: code,
 	})
 	if err != nil {
-		logrus.Errorf("err:", err.Error())
+		logs.Error("err:", err.Error())
 		return fmt.Sprintf("message: %s; addition: %s; request: %s", message, addition, err.Error())
 	}
-	c.JSON(http.StatusUnauthorized, ErrorRes(code, message))
+
+	f.Ctx.Output.SetStatus(http.StatusUnauthorized)
+	f.Data["json"] = ErrorRes(code, message)
+	f.ServeJSON()
 	return fmt.Sprintf("message: %s; addition: %s; request: %s", message, addition, requestInfo)
 }
 
-func (f *DefaultController) HandleSuccess(code int, message string, addition string, c *gin.Context) (info string, baseRes *BaseRes) {
+func (f *DefaultController) HandleSuccess(code int, message string, addition string) (info string, baseRes *BaseRes) {
 	var userName string
 
 	baseRes = &BaseRes{
@@ -142,19 +149,19 @@ func (f *DefaultController) HandleSuccess(code int, message string, addition str
 		message,
 	}
 
-	clientIp := c.Request.Header.Get("X-Real-ip")
+	clientIp := f.Ctx.Request.Header.Get("X-Real-ip")
 	if clientIp == "" {
-		clientIp = c.ClientIP()
+		clientIp = f.Ctx.Input.IP()
 	}
 	requestInfo, err := json.Marshal(RequestMessageData{
-		URI:            c.Request.URL.String(),
-		Method:         c.Request.Method,
+		URI:            f.Ctx.Input.URI(),
+		Method:         f.Ctx.Request.Method,
 		User:           userName,
 		IP:             clientIp,
 		ResponseStatus: code,
 	})
 	if err != nil {
-		logrus.Errorf("err:", err.Error())
+		logs.Error("err:", err.Error())
 		return fmt.Sprintf("message: %s; addition: %s; request: %s", message, addition, err.Error()), baseRes
 	}
 

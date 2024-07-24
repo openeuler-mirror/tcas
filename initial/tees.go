@@ -1,11 +1,11 @@
 package initial
 
 import (
-	"github.com/sirupsen/logrus"
 	//_ "tcas/tees/csv"
+	"github.com/beego/beego/v2/core/logs"
 	_ "tcas/tees/virtcca"
 )
 
 func TeesInit() {
-	logrus.Info("all tee verifiers are loaded")
+	logs.Info("all tee verifiers are loaded")
 }

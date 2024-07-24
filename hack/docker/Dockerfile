@@ -67,11 +67,11 @@ COPY --from=virtcca /QCBOR/libqcbor.a /usr/local/lib/
 COPY --from=virtcca /QCBOR/inc/qcbor /usr/local/include/qcbor
 COPY --from=virtcca /virtCCA_sdk/attestation/samples/build/libvccaverifier.so /lib/x86_64-linux-gnu/
 
+ARG VERSION=latest
 RUN cd /tcas \
     && PATH=$PATH:/usr/local/go/bin \
        GOPROXY=https://goproxy.cn,direct \
-       go build -ldflags "-w -s -X tcas/version.version=${VERSION}" -o tcas
-
+       go build -ldflags "-w -s -X tcas/server.version=${VERSION}" -o tcas
 
 FROM ubuntu:20.04
 #use tsinghua sources for accelerate in CN
@@ -105,4 +105,5 @@ COPY conf/ /workplace/app/conf
 
 WORKDIR /workplace/app
 ENTRYPOINT ["./tcas"]
+CMD []
 

@@ -1,9 +1,9 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/sirupsen/logrus"
+	"github.com/beego/beego/v2/core/logs"
 	"tcas/apprasisal"
 	"tcas/consts"
 )
@@ -22,29 +22,30 @@ type AttestationController struct {
 	DefaultController
 }
 
-func (uc AttestationController) AttestTrustNode(c *gin.Context) {
+func (uc *AttestationController) AttestTrustNode() {
 	var evidence apprasisal.NodeAttestInfo
-	if err := c.BindJSON(&evidence); err != nil {
+	if err := json.Unmarshal(uc.Ctx.Input.RequestBody, &evidence); err != nil {
 		message := fmt.Sprintf("get body error. %+v", err)
-		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE__JSON__UNMARSHAL_FAILED, message, "", c)
-		logrus.Error(errMes)
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE__JSON__UNMARSHAL_FAILED, message, "")
+		logs.Error(errMes)
 		return
 	}
 	fmt.Println(evidence.Report.Parameter)
 	re, err := apprasisal.TrustNodeAppraisal(&evidence)
 	if err != nil {
 		message := fmt.Sprintf("node attest failed, error: %s", err)
-		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_ATTEST_TRUSTNODE_FAILED, message, "", c)
-		logrus.Error(errMes)
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_ATTEST_TRUSTNODE_FAILED, message, "")
+		logs.Error(errMes)
 		return
 	}
-	mesg, baseRes := uc.HandleSuccess(200, "attest successful", "", c)
+	mesg, baseRes := uc.HandleSuccess(200, "attest successful", "")
 
 	res := TokenRes{
 		*baseRes,
 		re,
 	}
 
-	c.JSON(200, res)
-	logrus.Info(mesg)
+	uc.Data["json"] = res
+	uc.ServeJSON()
+	logs.Info(mesg)
 }
