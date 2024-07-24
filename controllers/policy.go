@@ -69,3 +69,21 @@ func (uc PolicyController) DeletePolicy() {
 	uc.ServeJSON()
 	logs.Info(mesg)
 }
+
+func (uc PolicyController) GetPolicyList() {
+	at := uc.GetString("attestation")
+	list, err := models.PolicyModel.GetPolicies(at)
+	if err != nil {
+		logs.Error("get policy list failed, error: %s", err)
+	}
+	mesg, baseRes := uc.HandleSuccess(200, "get policy info successful", "")
+	logs.Info(mesg)
+
+	res := DataRes{
+		*baseRes,
+		list,
+	}
+	uc.Data["json"] = res
+	uc.ServeJSON()
+	return
+}

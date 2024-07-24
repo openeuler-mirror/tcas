@@ -24,6 +24,7 @@ func init() {
 	ns_policy := beego.NewNamespace("/v1/policy",
 		beego.NSRouter("", &controllers.PolicyController{}, "post:CreatePolicy"),
 		beego.NSRouter("/:policyId", &controllers.PolicyController{}, "delete:DeletePolicy"),
+		beego.NSRouter("", &controllers.PolicyController{}, "get:GetPolicyList"),
 	)
 	beego.AddNamespace(ns_policy)
 
