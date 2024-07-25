@@ -83,6 +83,10 @@ func UserDataCheck(attestResult tees.VerifyTeeResult, nonce, runtimeData string)
 		logs.Debug("user data is %s", userData)
 		expectedUserData := fmt.Sprintf("%x", sha256.Sum256([]byte(nonce+runtimeData)))
 		logs.Debug("expected data is %s", expectedUserData)
+		if len(userData) > 64 {
+			userData = userData[:64]
+		}
+		logs.Debug("user data is %s", userData)
 		if userData != expectedUserData {
 			return fmt.Errorf("userData is not correct")
 		}
