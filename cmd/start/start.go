@@ -27,7 +27,9 @@ func runE(cmd *cobra.Command, args []string) error {
 	initial.TeesInit()
 	initial.InitDbSqlite()
 	initial.EndorsementInit()
+	initial.InitCertManager()
 	initial.InitNonceManger()
+
 	logs.Info("tcas is Running in %s mode", server.GetMode())
 	beego.Run()
 	return nil

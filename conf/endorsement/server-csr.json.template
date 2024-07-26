@@ -1,51 +1,51 @@
 {
-  "Issuer": {
-    "Country": [
-      "CN"
-    ],
-    "Organization": [
-      "Nanhu"
-    ],
-    "OrganizationalUnit": [
-      "Nanhu"
-    ],
-    "Locality": [
-      "Jiaxing"
-    ],
-    "Province": [
-      "Zhejiang"
-    ],
-    "StreetAddress": null,
-    "PostalCode": null,
-    "SerialNumber": "",
-    "CommonName": "Trust Cluster Attestation Server Root CA",
-    "Names": null,
-    "ExtraNames": null
-  },
+  "Version": 3,
+  "SerialNumber": 0,
   "Subject": {
-    "Country": [
-      "CN"
-    ],
-    "Organization": [
-      "Nanhulab"
-    ],
-    "OrganizationalUnit": [
-      "Nanhulab"
-    ],
-    "Locality": [
-      "Jiaxing"
-    ],
-    "Province": [
-      "Zhejiang"
-    ],
+    "Country": [],
+    "Organization": [],
+    "OrganizationalUnit": [],
+    "Locality": [],
+    "Province": [],
     "StreetAddress": null,
     "PostalCode": null,
     "SerialNumber": "",
-    "CommonName": "{{.CommonName}}",
+    "CommonName": "",
     "Names": null,
     "ExtraNames": null
   },
+  "NotBefore": "0001-01-01T00:00:00Z",
+  "NotAfter": "0001-01-01T00:00:00Z",
+  "KeyUsage": 5,
+  "Extensions": null,
+  "ExtraExtensions": [],
+  "UnhandledCriticalExtensions": null,
+  "ExtKeyUsage": [
+    1
+  ],
+  "UnknownExtKeyUsage": null,
+  "BasicConstraintsValid": true,
   "IsCA": false,
-  "DNSNames": ["{{.DNSNames}}"],
-  "IPAddresses":["{{.IPAddresses}}"]
+  "MaxPathLen": 0,
+  "MaxPathLenZero": false,
+  "SubjectKeyId": null,
+  "AuthorityKeyId": null,
+  "OCSPServer": null,
+  "IssuingCertificateURL": null,
+  "DNSNames": [],
+  "EmailAddresses": null,
+  "IPAddresses": [],
+  "URIs": null,
+  "PermittedDNSDomainsCritical": false,
+  "PermittedDNSDomains": null,
+  "ExcludedDNSDomains": null,
+  "PermittedIPRanges": null,
+  "ExcludedIPRanges": null,
+  "PermittedEmailAddresses": null,
+  "ExcludedEmailAddresses": null,
+  "PermittedURIDomains": null,
+  "ExcludedURIDomains": null,
+  "CRLDistributionPoints": null,
+  "PolicyIdentifiers": null,
+  "Policies": null
 }

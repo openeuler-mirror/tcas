@@ -1,10 +1,12 @@
 package token
 
 import (
+	"fmt"
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/google/uuid"
 	"tcas/endorsement"
+	"tcas/util/convertor"
 	"time"
 )
 
@@ -14,10 +16,9 @@ type EATInfo struct {
 	Intuse     string `json:"intuse"`
 }
 
-type JwtClaims struct {
+type JwtCommonClaims struct {
 	jwt.StandardClaims
 	EATInfo
-	CustomerClaims map[string]interface{}
 }
 
 func GenerateToken(customerClaims map[string]interface{}) (string, error) {
@@ -28,10 +29,10 @@ func GenerateToken(customerClaims map[string]interface{}) (string, error) {
 		expSecond = 60
 	}
 
-	jbc := new(JwtClaims)
+	jcc := new(JwtCommonClaims)
 
 	now := time.Now()
-	jbc.StandardClaims = jwt.StandardClaims{
+	jcc.StandardClaims = jwt.StandardClaims{
 		ExpiresAt: now.Add(time.Duration(expSecond) * time.Minute).Unix(),
 		Id:        uuid.NewString(),
 		IssuedAt:  now.Unix(),
@@ -39,16 +40,24 @@ func GenerateToken(customerClaims map[string]interface{}) (string, error) {
 		NotBefore: now.Unix() - 1000,
 	}
 
-	jbc.EATInfo = EATInfo{
+	jcc.EATInfo = EATInfo{
 		Dbgstat:    "disabled",
 		Intuse:     "generic",
 		EATProfile: "not support yet",
 	}
 
-	jbc.CustomerClaims = customerClaims
+	jccMap, err := convertor.AnyToMap(jcc)
+	if err != nil {
+		return "", fmt.Errorf("conver common claim to map failed, error: %s", err)
+	}
+	for k, v := range jccMap {
+		customerClaims[k] = v
+	}
 
+	jwtMap := jwt.MapClaims{}
+	jwtMap = customerClaims
 	token := jwt.New(jwt.SigningMethodES256)
-	token.Claims = jbc
+	token.Claims = jwtMap
 	token.Header = map[string]interface{}{
 		"typ": "JWT",
 		"alg": token.Method.Alg(),

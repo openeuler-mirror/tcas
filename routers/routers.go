@@ -18,6 +18,7 @@ func init() {
 	ns_attest := beego.NewNamespace("/v1/attest",
 		beego.NSRouter("", &controllers.AttestationController{}, "post:AttestTrustNode"),
 		beego.NSRouter("/getsecret", &controllers.AttestationController{}, "post:GetSecretById"),
+		beego.NSRouter("/getcert", &controllers.AttestationController{}, "post:AttestForGetCert"),
 	)
 	beego.AddNamespace(ns_attest)
 

@@ -10,6 +10,7 @@ import (
 	"tcas/policyengine"
 	"tcas/tees"
 	"tcas/token"
+	"tcas/util/convertor"
 )
 
 type TrustDeviceReport struct {
@@ -23,7 +24,7 @@ type NodeEvidence struct {
 	TeeReport   string               `json:"tee_report"`
 	Parameter   interface{}          `json:"parameter"`
 	TrustDevice []*TrustDeviceReport `json:"trust_devices"`
-	RuntimeData interface{}          `json:"runtime_data"`
+	RuntimeData string               `json:"runtime_data"`
 	InitData    string               `json:"init_data"`
 	EventLog    string               `json:"event_log"`
 }
@@ -48,36 +49,44 @@ type TrustNodeVerifiedResult struct {
 type TrustNodeClaims struct {
 	TrustNode    *TrustNodeVerifiedResult `json:"trust_node"`
 	PolicyInfos  []*models.Policy         `json:"policy_info"`
-	AttesterInfo interface{}              `json:"attester_info"`
+	AttesterInfo *AttesterInfo            `json:"attester_info"`
+}
+
+type AttesterInfo struct {
+	BinRuntimeData  string                 `json:"runtimedata_bin,omitempty"`
+	JsonRuntimeData map[string]interface{} `json:"runtimedata_json,omitempty"`
+	VerifyNonce     string                 `json:"verify_nonce,omitempty"`
 }
 
 type TrustClusterClaims struct {
 	TrustNodes   []*TrustNodeVerifiedResult
 	PolicyInfos  []*models.Policy
-	AttesterInfo interface{}
+	AttesterInfo *AttesterInfo
 }
 
-func UserDataCheck(attestResult tees.VerifyTeeResult, nonce, runtimeData string) error {
+func UserDataCheck(attestResult tees.VerifyTeeResult, nonce, runtimeData string) (*AttesterInfo, error) {
 	if nonce == "" && runtimeData == "" {
 		logs.Info("skip user data check")
-		return nil
+		return nil, nil
 	}
 
 	if tee, existed := attestResult["type"]; existed {
 		teeType := fmt.Sprintf("%s", tee)
 		if !tees.IsVerifierExists(teeType) {
-			return fmt.Errorf("tee type [%s] is not support now", teeType)
+			return nil, fmt.Errorf("tee type [%s] is not support now", teeType)
 		}
 
 		userData, err := tees.Verifiers[teeType].GetUserData(attestResult)
 		if err != nil {
-			return fmt.Errorf("get user data faield, error: %s", err)
+			return nil, fmt.Errorf("get user data faield, error: %s", err)
 		}
 
+		attesterInfo := new(AttesterInfo)
 		if nonce != "" {
 			if err := GNonceManager.CheckNonce(nonce); err != nil {
-				return err
+				return nil, err
 			}
+			attesterInfo.VerifyNonce = nonce
 		}
 
 		logs.Debug("user data is %s", userData)
@@ -86,13 +95,29 @@ func UserDataCheck(attestResult tees.VerifyTeeResult, nonce, runtimeData string)
 		if len(userData) > 64 {
 			userData = userData[:64]
 		}
-		logs.Debug("user data is %s", userData)
+
 		if userData != expectedUserData {
-			return fmt.Errorf("userData is not correct")
+			return nil, fmt.Errorf("userData is not correct")
 		}
-		return nil
+
+		if runtimeData != "" {
+			rbyte, err := base64.StdEncoding.DecodeString(runtimeData)
+			if err != nil {
+				return nil, fmt.Errorf("runtime data is not base64 format")
+			}
+
+			var runTimeDataJson map[string]interface{}
+			err = json.Unmarshal(rbyte, &runTimeDataJson)
+			if err != nil {
+				attesterInfo.BinRuntimeData = runtimeData
+			} else {
+				logs.Info("runtime data is json format")
+				attesterInfo.JsonRuntimeData = runTimeDataJson
+			}
+		}
+		return attesterInfo, nil
 	} else {
-		return fmt.Errorf("verify tee result format error")
+		return nil, fmt.Errorf("verify tee result format error")
 	}
 }
 
@@ -106,7 +131,7 @@ func TrustNodeAppraisal(attestInfo *NodeAttestInfo) (signedToken string, err err
 		return "", fmt.Errorf("node verify failed, error: %s", err)
 	}
 
-	err = UserDataCheck(verifyTeeResult.Tee, attestInfo.Nonce, "")
+	attesterInfo, err := UserDataCheck(verifyTeeResult.Tee, attestInfo.Nonce, attestInfo.Report.RuntimeData)
 	if err != nil {
 		logs.Error("user data check failed, error:%s", err)
 		return "", fmt.Errorf("user data or nonce not correct")
@@ -117,7 +142,8 @@ func TrustNodeAppraisal(attestInfo *NodeAttestInfo) (signedToken string, err err
 		return "", fmt.Errorf("policy evaluate failed, error: %s", err)
 	}
 
-	claims, err := anyToMap(trustNodeClaims)
+	trustNodeClaims.AttesterInfo = attesterInfo
+	claims, err := convertor.AnyToMap(trustNodeClaims)
 	if err != nil {
 		return "", fmt.Errorf("convert trust node cliams to map failed, error:%s", err)
 	}
@@ -229,7 +255,7 @@ func TrustNodePolicyEvaluate(policyIds []string, trustNode *TrustNodeVerifiedRes
 			return nil, fmt.Errorf(errmsg)
 		}
 		logs.Debug("policy evaluate result is %v", regoResultSet[0].Expressions[0].Value)
-		regoResult, err := anyToMap(regoResultSet[0].Expressions[0].Value)
+		regoResult, err := convertor.AnyToMap(regoResultSet[0].Expressions[0].Value)
 		if err != nil {
 			errmsg := fmt.Sprintf("rego result format error")
 			logs.Error(errmsg)
@@ -287,7 +313,7 @@ func TrustClusterPolicyEvaluate(policyIds []string, trustNodes []*TrustNodeVerif
 			return nil, fmt.Errorf(errmsg)
 		}
 		logs.Debug("policy evaluate result is %v", regoResultSet[0].Expressions[0].Value)
-		regoResult, err := anyToMap(regoResultSet[0].Expressions[0].Value)
+		regoResult, err := convertor.AnyToMap(regoResultSet[0].Expressions[0].Value)
 		if err != nil {
 			errmsg := fmt.Sprintf("rego result format error")
 			logs.Error(errmsg)
@@ -330,7 +356,7 @@ func TrustClusterVerify(attestInfo *ClusterAttestInfo) (signedToken string, err 
 		return "", fmt.Errorf("trust cluster policy evaluate failed, error:%s", err)
 	}
 
-	claims, err := anyToMap(tc)
+	claims, err := convertor.AnyToMap(tc)
 	if err != nil {
 		return "", fmt.Errorf("convert trust node cliams to map failed, error:%s", err)
 	}
@@ -345,15 +371,4 @@ func TrustClusterVerify(attestInfo *ClusterAttestInfo) (signedToken string, err 
 	logs.Debug("token is %s", finalToken)
 
 	return finalToken, nil
-}
-
-func anyToMap(obj interface{}) (map[string]interface{}, error) {
-	data, err := json.Marshal(obj)
-	if err != nil {
-		return nil, err
-	}
-
-	var result map[string]interface{}
-	err = json.Unmarshal(data, &result)
-	return result, err
 }
