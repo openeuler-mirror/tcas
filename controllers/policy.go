@@ -45,7 +45,7 @@ func (uc PolicyController) DeletePolicy() {
 	policyId := uc.GetString(":policyId")
 	if policyId == "" {
 		message := fmt.Sprintf("policy id is null")
-		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_CREATE_POLICY_FAILED, message, "")
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETE_POLICY_FAILED, message, "")
 		logs.Error(errMes)
 		return
 	}
@@ -53,7 +53,7 @@ func (uc PolicyController) DeletePolicy() {
 	err := models.PolicyModel.DeletePolicy(policyId)
 	if err != nil {
 		message := fmt.Sprintf("delete policy failed, error: %s", err)
-		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_CREATE_POLICY_FAILED, message, fmt.Sprintf("policy id is %s", policyId))
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETE_POLICY_FAILED, message, fmt.Sprintf("policy id is %s", policyId))
 		logs.Error(errMes)
 		return
 	}
