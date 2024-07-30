@@ -1,9 +1,9 @@
 package csv
 
 /*
-#cgo CFLAGS: -I/opt/gmssl/include/ -O0
-#cgo LDFLAGS: -L/opt/gmssl/lib -Wl,-rpath=/opt/gmssl/lib -lcrypto -ldl
-#include "attestation.h"
+#cgo CFLAGS:
+#cgo LDFLAGS: -lcrypto
+#include "hygoncert.h"
 */
 import "C"
 import (
@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/beego/beego/v2/core/logs"
 	"tcas/tees"
 	"unsafe"
 )
@@ -76,7 +77,7 @@ type CsvAttestationReport struct {
 
 type ReportDetailInfo struct {
 	UserData  string `json:"csv_userData"`
-	Monce     string `json:"csv_monce"`
+	Monce     string `json:"csv_mnonce"`
 	Measure   string `json:"csv_measurement"`
 	VMId      string `json:"csv_vmId"`
 	VMVersion string `json:"csv_vmVersion"`
@@ -94,7 +95,7 @@ func NewVerifier() *Verifier {
 	return &Verifier{}
 }
 
-func (v *Verifier) VerifyTeeReport(report []byte) (tees.VerifyTeeResult, error) {
+func (v *Verifier) VerifyTeeReport(report []byte, parameter interface{}) (tees.VerifyTeeResult, error) {
 	if report == nil {
 		return nil, fmt.Errorf("report is nil")
 	}
@@ -106,7 +107,7 @@ func (v *Verifier) VerifyTeeReport(report []byte) (tees.VerifyTeeResult, error) 
 
 	//open debug log when verify report
 	C.app_log_level = 0
-	CCsvAttestationReport := (*C.Csv_attestation_report)(unsafe.Pointer(parasReport))
+	CCsvAttestationReport := (*C.csv_attestation_report)(unsafe.Pointer(parasReport))
 	ret := C.full_verify_report(CCsvAttestationReport)
 	if int(ret) != 0 {
 		return nil, fmt.Errorf("verify attestation report failed, error: %d", int(ret))
