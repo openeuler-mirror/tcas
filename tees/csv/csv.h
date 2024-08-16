@@ -15,6 +15,8 @@
 #define HYGON_CERT_SIZE		832
 #define HYGON_CSV_CERT_SIZE	2084
 #define HYGON_HSK_CEK_CERT_SIZE (HYGON_CERT_SIZE + HYGON_CSV_CERT_SIZE)
+#define ECC_POINT_SIZE 72
+#define SIZE_INT32 4
 
 /* CSV attestation report */
 #define HASH_BLOCK_SIZE 32
@@ -27,29 +29,58 @@ typedef struct {
 #define CSV_ATTESTATION_USER_DATA_SIZE 64
 #define CSV_ATTESTATION_MNONCE_SIZE    16
 #define CSV_ATTESTATION_CHIP_SN_SIZE   64
+//typedef struct __attribute__((__packed__)) csv_attestation_report_t {
+//	hash_block_t user_pubkey_digest;
+//	uint8_t vm_id[CSV_VM_ID_SIZE];
+//	uint8_t vm_version[CSV_VM_VERSION_SIZE];
+//	uint8_t user_data[CSV_ATTESTATION_USER_DATA_SIZE];
+//	uint8_t mnonce[CSV_ATTESTATION_MNONCE_SIZE];
+//	hash_block_t measure;
+//	uint32_t policy;
+//	uint32_t sig_usage;
+//	uint32_t sig_algo;
+//	uint32_t anonce;
+//	union {
+//		uint8_t sig1[72 * 2];
+//		struct {
+//			uint8_t r[72];
+//			uint8_t s[72];
+//		} ecc_sig1;
+//	};
+//	uint8_t pek_cert[HYGON_CSV_CERT_SIZE];
+//	uint8_t chip_id[CSV_ATTESTATION_CHIP_SN_SIZE];
+//	uint8_t reserved1[32];
+//	hash_block_t hmac;
+//	uint8_t reserved2[1548]; // Padding to a page size
+//} csv_attestation_report;
+typedef struct _hash_block_u {
+    unsigned char block[32];
+} hash_block_u;
+
+typedef struct _ecc_signature {
+    uint32_t sig_r[ECC_POINT_SIZE / SIZE_INT32];
+    uint32_t sig_s[ECC_POINT_SIZE / SIZE_INT32];
+} ecc_signature_t;
+
 typedef struct __attribute__((__packed__)) csv_attestation_report_t {
-	hash_block_t user_pubkey_digest;
-	uint8_t vm_id[CSV_VM_ID_SIZE];
-	uint8_t vm_version[CSV_VM_VERSION_SIZE];
-	uint8_t user_data[CSV_ATTESTATION_USER_DATA_SIZE];
-	uint8_t mnonce[CSV_ATTESTATION_MNONCE_SIZE];
-	hash_block_t measure;
-	uint32_t policy;
-	uint32_t sig_usage;
-	uint32_t sig_algo;
-	uint32_t anonce;
-	union {
-		uint8_t sig1[72 * 2];
-		struct {
-			uint8_t r[72];
-			uint8_t s[72];
-		} ecc_sig1;
-	};
-	uint8_t pek_cert[HYGON_CSV_CERT_SIZE];
-	uint8_t chip_id[CSV_ATTESTATION_CHIP_SN_SIZE];
-	uint8_t reserved1[32];
-	hash_block_t hmac;
-	uint8_t reserved2[1548]; // Padding to a page size
+    	    hash_block_t user_pubkey_digest;
+            uint8_t vm_id[CSV_VM_ID_SIZE];
+            uint8_t vm_version[CSV_VM_VERSION_SIZE];
+            uint8_t user_data[CSV_ATTESTATION_USER_DATA_SIZE];
+            uint8_t mnonce[CSV_ATTESTATION_MNONCE_SIZE];
+            hash_block_t measure;
+            uint32_t policy;
+            uint32_t sig_usage;
+            uint32_t sig_algo;
+            uint32_t anonce;
+            union {
+                uint32_t sig1[ECC_POINT_SIZE * 2 / SIZE_INT32];
+                ecc_signature_t ecc_sig1;
+            };
+            uint8_t pek_cert[HYGON_CSV_CERT_SIZE];
+            uint8_t sn[CSV_ATTESTATION_CHIP_SN_SIZE];
+            uint8_t reserved2[32];
+            hash_block_u mac;
 } csv_attestation_report;
 
 #include <stddef.h>

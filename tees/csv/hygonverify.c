@@ -1141,24 +1141,28 @@ int full_verify_report(csv_attestation_report *report)
         return -1;
     }
     int i, j = 0;
-//    uint8_t chip_id[CSV_ATTESTATION_CHIP_SN_SIZE];
-//    j = ((uint8_t*)&report->reserved2 - (uint8_t*)report->chip_id) / sizeof(uint32_t);
-//    for (i = 0; i < j; i++)
-//        ((uint32_t*)chip_id)[i] = ((uint32_t*)report->chip_id)[i] ^ report->anonce;
-//
-     LOG_DEBUG("chip_id is %s\n", report->chip_id);
+    uint8_t chip_id[CSV_ATTESTATION_CHIP_SN_SIZE];
+    j = ((uint8_t*)&report->reserved2 - (uint8_t*)report->sn) / sizeof(uint32_t);
+    for (i = 0; i < j; i++)
+        ((uint32_t*)chip_id)[i] = ((uint32_t*)report->sn)[i] ^ report->anonce;
+
+    LOG_DEBUG("chip_id is %s\n", chip_id);
+
+    csv_cert_t pek_cert;
+    j = ((uint8_t*)report->sn - (uint8_t*)&report->pek_cert) / sizeof(uint32_t);
+    for (i = 0; i < j; i++)
+        ((uint32_t*)&pek_cert)[i] = ((uint32_t*)&report->pek_cert)[i] ^ report->anonce;
 
     int ret = 0;
-    csv_cert_t *pek_cert = (csv_cert_t *)report->pek_cert;
-    ret = validate_cert_chain(report, report->chip_id, pek_cert);
+    ret = validate_cert_chain(report, chip_id, &pek_cert);
     if (ret) {
         LOG_ERROR("validate cert chain failed\n");
-        return -1;
+        return ret;
     }
 
-    int re = sm2_verify_attestation_report(pek_cert, report);
-	if (re != 1 ) {
-		return re;
+    ret = sm2_verify_attestation_report(&pek_cert, report);
+	if (ret != 1 ) {
+		return ret;
 	}
 	return 0;
 }

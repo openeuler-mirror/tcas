@@ -1,7 +1,6 @@
 package csv
 
 /*
-#cgo CFLAGS:
 #cgo LDFLAGS: -lcrypto
 #include "hygoncert.h"
 */
