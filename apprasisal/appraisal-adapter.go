@@ -64,61 +64,66 @@ type TrustClusterClaims struct {
 	AttesterInfo *AttesterInfo
 }
 
-func UserDataCheck(attestResult tees.VerifyTeeResult, nonce, runtimeData string) (*AttesterInfo, error) {
+func UserDataCheck(attestResult *TrustNodeVerifiedResult, nonce, runtimeData string) (*AttesterInfo, error) {
 	if nonce == "" && runtimeData == "" {
 		logs.Info("skip user data check")
 		return nil, nil
 	}
 
-	if tee, existed := attestResult["type"]; existed {
-		teeType := fmt.Sprintf("%s", tee)
-		if !tees.IsVerifierExists(teeType) {
-			return nil, fmt.Errorf("tee type [%s] is not support now", teeType)
-		}
+	results := make([]tees.VerifyTeeResult, 0)
+	results = append(results, attestResult.Tee)
+	//todo check trusted device
+	//results = append(results, attestResult.TrustDevice...)
 
-		userData, err := tees.Verifiers[teeType].GetUserData(attestResult)
-		if err != nil {
-			return nil, fmt.Errorf("get user data faield, error: %s", err)
-		}
-
-		attesterInfo := new(AttesterInfo)
-		if nonce != "" {
-			if err := GNonceManager.CheckNonce(nonce); err != nil {
-				return nil, err
+	attesterInfo := new(AttesterInfo)
+	for _, r := range results {
+		if tee, existed := r["type"]; existed {
+			teeType := fmt.Sprintf("%s", tee)
+			if !tees.IsVerifierExists(teeType) {
+				return nil, fmt.Errorf("tee type [%s] is not support now", teeType)
 			}
-			attesterInfo.VerifyNonce = nonce
-		}
 
-		logs.Debug("user data is %s", userData)
-		expectedUserData := fmt.Sprintf("%x", sha256.Sum256([]byte(nonce+runtimeData)))
-		logs.Debug("expected data is %s", expectedUserData)
-		if len(userData) > 64 {
-			userData = userData[:64]
-		}
-
-		if userData != expectedUserData {
-			return nil, fmt.Errorf("userData is not correct")
-		}
-
-		if runtimeData != "" {
-			rbyte, err := base64.StdEncoding.DecodeString(runtimeData)
+			userData, err := tees.Verifiers[teeType].GetUserData(attestResult.Tee)
 			if err != nil {
-				return nil, fmt.Errorf("runtime data is not base64 format")
+				return nil, fmt.Errorf("get user data faield, error: %s", err)
 			}
 
-			var runTimeDataJson map[string]interface{}
-			err = json.Unmarshal(rbyte, &runTimeDataJson)
-			if err != nil {
-				attesterInfo.BinRuntimeData = runtimeData
-			} else {
-				logs.Info("runtime data is json format")
-				attesterInfo.JsonRuntimeData = runTimeDataJson
+			if nonce != "" {
+				if err := GNonceManager.CheckNonce(nonce); err != nil {
+					return nil, err
+				}
+				attesterInfo.VerifyNonce = nonce
 			}
+
+			logs.Debug("user data is %s", userData)
+			expectedUserData := fmt.Sprintf("%x", sha256.Sum256([]byte(nonce+runtimeData)))
+			logs.Debug("expected data is %s", expectedUserData)
+			if len(userData) > 64 {
+				userData = userData[:64]
+			}
+			if userData != expectedUserData {
+				return nil, fmt.Errorf("userData is not correct")
+			}
+		} else {
+			return nil, fmt.Errorf("verify tee result format error")
 		}
-		return attesterInfo, nil
-	} else {
-		return nil, fmt.Errorf("verify tee result format error")
 	}
+	if runtimeData != "" {
+		rbyte, err := base64.StdEncoding.DecodeString(runtimeData)
+		if err != nil {
+			return nil, fmt.Errorf("runtime data is not base64 format")
+		}
+
+		var runTimeDataJson map[string]interface{}
+		err = json.Unmarshal(rbyte, &runTimeDataJson)
+		if err != nil {
+			attesterInfo.BinRuntimeData = runtimeData
+		} else {
+			logs.Info("runtime data is json format")
+			attesterInfo.JsonRuntimeData = runTimeDataJson
+		}
+	}
+	return attesterInfo, nil
 }
 
 func TrustNodeAppraisal(attestInfo *NodeAttestInfo) (signedToken string, err error) {
@@ -131,7 +136,7 @@ func TrustNodeAppraisal(attestInfo *NodeAttestInfo) (signedToken string, err err
 		return "", fmt.Errorf("node verify failed, error: %s", err)
 	}
 
-	attesterInfo, err := UserDataCheck(verifyTeeResult.Tee, attestInfo.Nonce, attestInfo.Report.RuntimeData)
+	attesterInfo, err := UserDataCheck(verifyTeeResult, attestInfo.Nonce, attestInfo.Report.RuntimeData)
 	if err != nil {
 		logs.Error("user data check failed, error:%s", err)
 		return "", fmt.Errorf("user data or nonce not correct")
@@ -369,6 +374,5 @@ func TrustClusterVerify(attestInfo *ClusterAttestInfo) (signedToken string, err 
 	}
 
 	logs.Debug("token is %s", finalToken)
-
 	return finalToken, nil
 }
