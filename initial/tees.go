@@ -4,6 +4,7 @@ import (
 	//_ "tcas/tees/csv"
 	"github.com/beego/beego/v2/core/logs"
 	_ "tcas/tees/csv"
+	_ "tcas/tees/nvidia"
 	_ "tcas/tees/virtcca"
 )
 
