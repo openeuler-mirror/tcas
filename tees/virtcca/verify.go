@@ -128,7 +128,7 @@ func (v *Verifier) GetCVMClaimsFromCCAToken(ccaToken *CCAToken) (*CVMClaims, err
 	}
 	cvmClaims := new(CVMClaims)
 	cvmClaimsPtr := (*C.cvm_claims_t)(unsafe.Pointer(&ccaToken.CVMToken))
-	cvmClaims.Challenge = hex.EncodeToString([]byte(C.GoStringN((*C.char)(cvmClaimsPtr.challenge.ptr), C.int(cvmClaimsPtr.challenge.len))))
+	cvmClaims.Challenge = C.GoStringN((*C.char)(cvmClaimsPtr.challenge.ptr), C.int(cvmClaimsPtr.challenge.len))
 	cvmClaims.RPV = hex.EncodeToString([]byte(C.GoStringN((*C.char)(cvmClaimsPtr.rpv.ptr), C.int(cvmClaimsPtr.rpv.len))))
 	cvmClaims.RIM = hex.EncodeToString([]byte(C.GoStringN((*C.char)(cvmClaimsPtr.rim.ptr), C.int(cvmClaimsPtr.rim.len))))
 	cvmClaims.REM0 = hex.EncodeToString([]byte(C.GoStringN((*C.char)(cvmClaimsPtr.rem[0].ptr), C.int(cvmClaimsPtr.rem[0].len))))
