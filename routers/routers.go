@@ -15,6 +15,16 @@ func init() {
 		AllowCredentials: true,
 	}))
 
+	ns_user := beego.NewNamespace("/v1/user/",
+		beego.NSRouter("/login", &controllers.AuthController{}, "post:Login"),
+		beego.NSRouter("/info", &controllers.UserController{}, "get:CurrentUser"),
+		beego.NSRouter("/create", &controllers.UserController{}, "post:Create"),
+		beego.NSRouter("/:userId", &controllers.UserController{}, "delete:DeleteUserById"),
+		beego.NSRouter("/passwd/update", &controllers.UserController{}, "post:ResetPassword"),
+		beego.NSRouter("/list", &controllers.UserController{}, "get:QueryUserInfoByCondition"),
+	)
+	beego.AddNamespace(ns_user)
+
 	ns_attest := beego.NewNamespace("/v1/attest",
 		beego.NSRouter("", &controllers.AttestationController{}, "post:AttestTrustNode"),
 		beego.NSRouter("/getsecret", &controllers.AttestationController{}, "post:GetSecretById"),

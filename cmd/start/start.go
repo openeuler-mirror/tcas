@@ -25,6 +25,7 @@ func NewCommand() *cobra.Command {
 
 func runE(cmd *cobra.Command, args []string) error {
 	initial.TeesInit()
+	initial.InitRsaKey()
 	initial.InitDbSqlite()
 	initial.EndorsementInit()
 	initial.InitCertManager()

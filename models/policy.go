@@ -36,10 +36,6 @@ type Policy struct {
 	UpdateTime      *time.Time `orm:"auto_now;type(datetime)" json:"updateTime,omitempty"`
 }
 
-type UserStatistics struct {
-	Total int64 `json:"total,omitempty"`
-}
-
 type PolicyFilterCondition struct {
 	Page     int64
 	PageSize int64
