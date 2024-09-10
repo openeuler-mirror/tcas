@@ -194,7 +194,7 @@ func (c *UserController) QueryUserInfoByCondition() {
 	ps, _ := c.GetInt("pageSize", 10)
 	fc.Page = int64(p)
 	fc.PageSize = int64(ps)
-	fc.User = c.DefaultController.User
+	fc.User = &c.DefaultController.User
 
 	re, err := models.UserModel.GetUserInfoByCondition(fc)
 	if err != nil {
@@ -223,7 +223,7 @@ func (c *UserController) CurrentUser() {
 	mesg, baseRes := c.HandleSuccess(200, "get user info success", "")
 	c.Data["json"] = &UserRes{
 		*baseRes,
-		c.User,
+		&c.User,
 	}
 	logs.Info(mesg)
 	c.ServeJSON()

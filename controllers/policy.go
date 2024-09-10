@@ -12,6 +12,16 @@ type PolicyController struct {
 	DefaultController
 }
 
+func (uc PolicyController) Prepare() {
+	uc.DefaultController.Prepare()
+	if !models.HasPolicyPermission(uc.User.Roles) {
+		message := fmt.Sprintf("no permission to manager policy")
+		errMes := uc.HandleErrorStatusBadRequest(401, message, "")
+		logs.Error(errMes)
+		return
+	}
+}
+
 func (uc PolicyController) CreatePolicy() {
 	var policy models.Policy
 	if err := json.Unmarshal(uc.Ctx.Input.RequestBody, &policy); err != nil {
@@ -21,6 +31,7 @@ func (uc PolicyController) CreatePolicy() {
 		return
 	}
 
+	policy.UserId = uc.User.Id
 	id, err := models.PolicyModel.AddPolicy(&policy)
 	if err != nil {
 		message := fmt.Sprintf("create policy failed, error: %s", err.Error())
@@ -50,7 +61,22 @@ func (uc PolicyController) DeletePolicy() {
 		return
 	}
 
-	err := models.PolicyModel.DeletePolicy(policyId)
+	policy, err := models.PolicyModel.GetPolicyById(policyId)
+	if err != nil {
+		message := fmt.Sprintf("policy does not exist")
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETE_POLICY_FAILED, message, "")
+		logs.Error(errMes)
+		return
+	}
+
+	if policy.UserId != uc.User.Id {
+		message := fmt.Sprintf("policy does not exist")
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETE_POLICY_FAILED, message, "")
+		logs.Error(errMes)
+		return
+	}
+
+	err = models.PolicyModel.DeletePolicy(policyId)
 	if err != nil {
 		message := fmt.Sprintf("delete policy failed, error: %s", err)
 		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETE_POLICY_FAILED, message, fmt.Sprintf("policy id is %s", policyId))
@@ -72,7 +98,7 @@ func (uc PolicyController) DeletePolicy() {
 
 func (uc PolicyController) GetPolicyList() {
 	at := uc.GetString("attestation")
-	list, err := models.PolicyModel.GetPolicies(at)
+	list, err := models.PolicyModel.GetPolicies(at, uc.User.Id)
 	if err != nil {
 		logs.Error("get policy list failed, error: %s", err)
 	}

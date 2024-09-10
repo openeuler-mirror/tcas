@@ -304,6 +304,16 @@ func HasPolicyPermission(roles string) bool {
 	return false
 }
 
+func HasSecretPermission(roles string) bool {
+	roleList := strings.Split(roles, ",")
+	for _, r := range roleList {
+		if r == SecretUser {
+			return true
+		}
+	}
+	return false
+}
+
 func IsOrdinaryRole(roles string) bool {
 	roleList := strings.Split(roles, ",")
 	for _, r := range roleList {

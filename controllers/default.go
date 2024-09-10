@@ -51,7 +51,7 @@ func ErrorRes(code int, message string) *BaseRes {
 
 type DefaultController struct {
 	beego.Controller
-	User *models.User
+	User models.User
 }
 
 type PageRes struct {
@@ -105,18 +105,19 @@ func (f *DefaultController) Prepare() {
 		logs.Error(errMes)
 		return
 	}
-	f.User, err = models.UserModel.GetUserById(id)
+	User, err := models.UserModel.GetUserById(id)
 	if err != nil {
 		errMes := f.HandleErrorStatusUnauthorized(consts.ERROR_CODE_LOGIN_EXPIRED, "illegal user", "")
 		logs.Error(errMes)
 		return
 	}
+	f.User = *User
 	f.User.Password = ""
+
 	logs.Debug("user %s try to request %s", f.User.Name, f.Ctx.Input.URL())
 }
 
 func (f *DefaultController) HandleErrorStatusBadRequest(code int, message string, addition string) (errMesg string) {
-	var userName string
 
 	clientIp := f.Ctx.Request.Header.Get("X-Real-ip")
 	if clientIp == "" {
@@ -125,7 +126,7 @@ func (f *DefaultController) HandleErrorStatusBadRequest(code int, message string
 	requestInfo, err := json.Marshal(RequestMessageData{
 		URI:            f.Ctx.Input.URI(),
 		Method:         f.Ctx.Request.Method,
-		User:           userName,
+		User:           f.User.Name,
 		IP:             clientIp,
 		ResponseStatus: code,
 	})
@@ -142,8 +143,6 @@ func (f *DefaultController) HandleErrorStatusBadRequest(code int, message string
 }
 
 func (f *DefaultController) HandleErrorStatusUnauthorized(code int, message string, addition string) (errMesg string) {
-	var userName string
-
 	clientIp := f.Ctx.Request.Header.Get("X-Real-ip")
 	if clientIp == "" {
 		clientIp = f.Ctx.Input.IP()
@@ -151,7 +150,7 @@ func (f *DefaultController) HandleErrorStatusUnauthorized(code int, message stri
 	requestInfo, err := json.Marshal(RequestMessageData{
 		URI:            f.Ctx.Input.URI(),
 		Method:         f.Ctx.Request.Method,
-		User:           userName,
+		User:           f.User.Name,
 		IP:             clientIp,
 		ResponseStatus: code,
 	})
@@ -167,8 +166,6 @@ func (f *DefaultController) HandleErrorStatusUnauthorized(code int, message stri
 }
 
 func (f *DefaultController) HandleSuccess(code int, message string, addition string) (info string, baseRes *BaseRes) {
-	var userName string
-
 	baseRes = &BaseRes{
 		code,
 		message,
@@ -181,7 +178,7 @@ func (f *DefaultController) HandleSuccess(code int, message string, addition str
 	requestInfo, err := json.Marshal(RequestMessageData{
 		URI:            f.Ctx.Input.URI(),
 		Method:         f.Ctx.Request.Method,
-		User:           userName,
+		User:           f.User.Name,
 		IP:             clientIp,
 		ResponseStatus: code,
 	})
