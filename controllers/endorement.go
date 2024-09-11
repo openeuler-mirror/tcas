@@ -10,6 +10,10 @@ type EndorsementController struct {
 	DefaultController
 }
 
+func (uc EndorsementController) Prepare() {
+
+}
+
 func (uc EndorsementController) GetCa() {
 	res := struct {
 		Keys []jwk.Key `json:"keys"`

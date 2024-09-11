@@ -11,6 +11,10 @@ type NonceController struct {
 	DefaultController
 }
 
+func (uc NonceController) Prepare() {
+
+}
+
 func (uc NonceController) GetNonce() {
 	nonce, err := apprasisal.GNonceManager.GenerateNonce()
 	if err != nil {

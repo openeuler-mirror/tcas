@@ -29,6 +29,21 @@ type TrustNodeCertReq struct {
 
 type AttestationController struct {
 	DefaultController
+	Policies []*models.Policy
+}
+
+func (uc *AttestationController) Prepare() {
+	apikey := uc.Ctx.Input.Header("API-KEY")
+	if apikey != "" {
+		user, err := models.UserModel.GetUserByApiKey(apikey)
+		if err != nil {
+			message := fmt.Sprintf("no permission")
+			errMes := uc.HandleErrorStatusUnauthorized(401, message, "")
+			logs.Error(errMes)
+			return
+		}
+		uc.User = *user
+	}
 }
 
 func (uc *AttestationController) AttestTrustNode() {
@@ -39,6 +54,14 @@ func (uc *AttestationController) AttestTrustNode() {
 		logs.Error(errMes)
 		return
 	}
+
+	policies, err := uc.getPolicies(evidence.PolicyIds)
+	if err != nil {
+		message := fmt.Sprintf("get policy failed, error: %s", err)
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_ATTEST_TRUSTNODE_FAILED, message, "")
+		logs.Error(errMes)
+	}
+	evidence.Policies = policies
 
 	re, err := apprasisal.TrustNodeAppraisal(&evidence)
 	if err != nil {
@@ -83,7 +106,15 @@ func (uc *AttestationController) GetSecretById() {
 		return
 	}
 
-	_, err := apprasisal.TrustNodeAppraisal(&evidence)
+	policies, err := uc.getPolicies(evidence.PolicyIds)
+	if err != nil {
+		message := fmt.Sprintf("get policy failed, error: %s", err)
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_ATTEST_TRUSTNODE_FAILED, message, "")
+		logs.Error(errMes)
+	}
+	evidence.Policies = policies
+
+	_, err = apprasisal.TrustNodeAppraisal(&evidence)
 	if err != nil {
 		message := fmt.Sprintf("node attest failed, error: %s", err)
 		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_ATTEST_TRUSTNODE_FAILED, message, "")
@@ -142,6 +173,14 @@ func (uc *AttestationController) AttestForGetCert() {
 		return
 	}
 
+	policies, err := uc.getPolicies(req.AttestInfo.PolicyIds)
+	if err != nil {
+		message := fmt.Sprintf("get policy failed, error: %s", err)
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_ATTEST_TRUSTNODE_FAILED, message, "")
+		logs.Error(errMes)
+	}
+	req.AttestInfo.Policies = policies
+
 	token, err := apprasisal.TrustNodeAppraisal(&req.AttestInfo)
 	if err != nil {
 		message := fmt.Sprintf("node attest failed, error: %s", err)
@@ -176,6 +215,28 @@ func (uc *AttestationController) AttestForGetCert() {
 	uc.Data["json"] = res
 	uc.ServeJSON()
 	logs.Info(mesg)
+}
+
+func (uc *AttestationController) getPolicies(PolicyIds []string) ([]*models.Policy, error) {
+	policies := make([]*models.Policy, 0)
+	if uc.User.Id != "" {
+		// if not assign policy ids, use the latest policy
+		if len(PolicyIds) == 0 {
+			latestPolicy, err := models.PolicyModel.GetLatestPolicy(models.NodeType, uc.User.Id)
+			if err == nil {
+				policies = append(policies, latestPolicy)
+			}
+		} else {
+			for _, pid := range PolicyIds {
+				policy, err := models.PolicyModel.GetPolicyById(pid)
+				if err != nil || policy.UserId != uc.User.Id {
+					return nil, fmt.Errorf("unknow policy id: %s", pid)
+				}
+				policies = append(policies, policy)
+			}
+		}
+	}
+	return policies, nil
 }
 
 func decodePublicKeyFromRuntimeData(base64Pubkey string) (*ecdsa.PublicKey, error) {

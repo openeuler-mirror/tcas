@@ -96,7 +96,7 @@ func (c *UserController) DeleteUserById() {
 		return
 	}
 
-	if models.HasAdminPermission(du.Roles) == false {
+	if models.HasAdminPermission(du.Roles) == true {
 		message := fmt.Sprintf("no permission, %s could not be deleted", du.Roles)
 		addition := fmt.Sprintf("user id is %s", id)
 		errMes := c.HandleErrorStatusUnauthorized(401, message, addition)
@@ -200,13 +200,13 @@ func (c *UserController) QueryUserInfoByCondition() {
 	if err != nil {
 		fcInfo, _ := json.Marshal(fc)
 		addition := string(fcInfo)
-		message := fmt.Sprintf("Get file list failed %s", err.Error())
+		message := fmt.Sprintf("Get user list failed %s", err.Error())
 		mesg := c.HandleErrorStatusBadRequest(consts.ERROR_CODE_GET_USERLIST_FAILED, message, addition)
 		logs.Error(mesg)
 		return
 	}
 
-	mesg, baseRes := c.HandleSuccess(200, "get file list successful", "")
+	mesg, baseRes := c.HandleSuccess(200, "get user list successful", "")
 	res := PageRes{
 		BaseRes:  *baseRes,
 		DataPage: re,
@@ -224,6 +224,30 @@ func (c *UserController) CurrentUser() {
 	c.Data["json"] = &UserRes{
 		*baseRes,
 		&c.User,
+	}
+	logs.Info(mesg)
+	c.ServeJSON()
+}
+
+func (c *UserController) UpdateApiKey() {
+	if !models.HasPolicyPermission(c.User.Roles) {
+		message := "no permission"
+		errMes := c.HandleErrorStatusUnauthorized(401, message, "")
+		logs.Error(errMes)
+		return
+	}
+
+	key, err := models.UserModel.UpdateApiKeyById(c.User.Id)
+	if err != nil {
+		message := fmt.Sprintf("update api key failed %s", err.Error())
+		mesg := c.HandleErrorStatusBadRequest(consts.ERROR_CODE_UPDATE_APIKEY_FAILED, message, "")
+		logs.Error(mesg)
+		return
+	}
+	mesg, baseRes := c.HandleSuccess(200, "update api key success", "")
+	c.Data["json"] = &DataRes{
+		*baseRes,
+		key,
 	}
 	logs.Info(mesg)
 	c.ServeJSON()

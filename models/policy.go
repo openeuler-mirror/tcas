@@ -101,7 +101,7 @@ func (m *policyModel) GetPolicies(attestationType, userId string) ([]*Policy, er
 	o := orm.NewOrm()
 	qs := o.QueryTable(TABLE_POLICY)
 	var policies []*Policy
-	cond := orm.NewCondition().And("AttestationType", attestationType).And("userId", userId)
+	cond := orm.NewCondition().And("AttestationType", attestationType).And("UserId", userId)
 	qs = qs.SetCond(cond)
 
 	_, err := qs.OrderBy("-updateTime", "-createTime").All(&policies)
@@ -115,14 +115,14 @@ func (m *policyModel) GetPolicies(attestationType, userId string) ([]*Policy, er
 	return policies, nil
 }
 
-func (m *policyModel) GetLatestPolicy(attestationType string) (*Policy, error) {
+func (m *policyModel) GetLatestPolicy(attestationType, userId string) (*Policy, error) {
 	if !m.CheckPolicyAttestationType(attestationType) {
 		return nil, fmt.Errorf("attestation type %s in not support", attestationType)
 	}
 	var policy Policy
 	o := orm.NewOrm()
 	qs := o.QueryTable(TABLE_POLICY)
-	cond := orm.NewCondition().And("AttestationType", attestationType)
+	cond := orm.NewCondition().And("AttestationType", attestationType).And("userId", userId)
 	qs = qs.SetCond(cond)
 	err := qs.OrderBy("-updateTime").Limit(1).One(&policy)
 	if err != nil {

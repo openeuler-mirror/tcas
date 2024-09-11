@@ -22,6 +22,7 @@ func init() {
 		beego.NSRouter("/:userId", &controllers.UserController{}, "delete:DeleteUserById"),
 		beego.NSRouter("/passwd/update", &controllers.UserController{}, "post:ResetPassword"),
 		beego.NSRouter("/list", &controllers.UserController{}, "get:QueryUserInfoByCondition"),
+		beego.NSRouter("/update/apikey", &controllers.UserController{}, "put:UpdateApiKey"),
 	)
 	beego.AddNamespace(ns_user)
 

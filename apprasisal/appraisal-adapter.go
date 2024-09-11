@@ -30,15 +30,17 @@ type NodeEvidence struct {
 }
 
 type NodeAttestInfo struct {
-	Report    *NodeEvidence `json:"report"`
-	Nonce     string        `json:"nonce"`
-	PolicyIds []string      `json:"policy_ids"`
+	Report    *NodeEvidence    `json:"report"`
+	Nonce     string           `json:"nonce"`
+	PolicyIds []string         `json:"policy_ids"`
+	Policies  []*models.Policy `json:"-"`
 }
 
 type ClusterAttestInfo struct {
-	Reports   []*NodeEvidence `json:"reports"`
-	Nonce     string          `json:"nonce"`
-	PolicyIds []string        `json:"policy_ids"`
+	Reports   []*NodeEvidence  `json:"reports"`
+	Nonce     string           `json:"nonce"`
+	PolicyIds []string         `json:"policy_ids"`
+	Policies  []*models.Policy `json:"-"`
 }
 
 type TrustNodeVerifiedResult struct {
@@ -142,7 +144,7 @@ func TrustNodeAppraisal(attestInfo *NodeAttestInfo) (signedToken string, err err
 		return "", fmt.Errorf("user data or nonce not correct")
 	}
 
-	trustNodeClaims, err := TrustNodePolicyEvaluate(attestInfo.PolicyIds, verifyTeeResult)
+	trustNodeClaims, err := TrustNodePolicyEvaluate(attestInfo.Policies, verifyTeeResult)
 	if err != nil {
 		return "", fmt.Errorf("policy evaluate failed, error: %s", err)
 	}
@@ -226,17 +228,7 @@ func TrustDeviceVerify(t *TrustDeviceReport) (tees.VerifyTeeResult, error) {
 	return verifyResult, nil
 }
 
-func TrustNodePolicyEvaluate(policyIds []string, trustNode *TrustNodeVerifiedResult) (*TrustNodeClaims, error) {
-	var policies []*models.Policy
-	if len(policyIds) == 0 {
-		policy, err := models.PolicyModel.GetLatestPolicy(models.NodeType)
-		if err == nil {
-			policies = append(policies, policy)
-		}
-	} else {
-		return nil, fmt.Errorf("not support yet")
-	}
-
+func TrustNodePolicyEvaluate(policies []*models.Policy, trustNode *TrustNodeVerifiedResult) (*TrustNodeClaims, error) {
 	input := struct {
 		TrustNode *TrustNodeVerifiedResult `json:"trust_node"`
 	}{
@@ -284,17 +276,7 @@ func TrustNodePolicyEvaluate(policyIds []string, trustNode *TrustNodeVerifiedRes
 	return trustNodeClaims, nil
 }
 
-func TrustClusterPolicyEvaluate(policyIds []string, trustNodes []*TrustNodeVerifiedResult) (*TrustClusterClaims, error) {
-	var policies []*models.Policy
-	if len(policyIds) == 0 {
-		policy, err := models.PolicyModel.GetLatestPolicy(models.ClusterType)
-		if err == nil {
-			policies = append(policies, policy)
-		}
-	} else {
-		return nil, fmt.Errorf("not support yet")
-	}
-
+func TrustClusterPolicyEvaluate(policies []*models.Policy, trustNodes []*TrustNodeVerifiedResult) (*TrustClusterClaims, error) {
 	input := struct {
 		TrustCluster []*TrustNodeVerifiedResult `json:"trust_cluster"`
 	}{
@@ -356,7 +338,7 @@ func TrustClusterVerify(attestInfo *ClusterAttestInfo) (signedToken string, err 
 		nodeVerifyResults = append(nodeVerifyResults, verifyResult)
 	}
 
-	tc, err := TrustClusterPolicyEvaluate(attestInfo.PolicyIds, nodeVerifyResults)
+	tc, err := TrustClusterPolicyEvaluate(attestInfo.Policies, nodeVerifyResults)
 	if err != nil {
 		return "", fmt.Errorf("trust cluster policy evaluate failed, error:%s", err)
 	}

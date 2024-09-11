@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"strings"
 	"tcas/util/encode"
+	"tcas/util/encrypt"
 	"time"
 
 	"github.com/beego/beego/v2/client/orm"
@@ -47,6 +48,7 @@ type User struct {
 	Status        string     `orm:"size(200)" json:"status,omitempty"`
 	Comment       string     `orm:"type(text)" json:"comment,omitempty"`
 	Roles         string     `orm:"size(32)" json:"roles,omitempty"`
+	ApiKey        string     `orm:"size(255);unique" json:"apiKey"`
 	LastLogin     *time.Time `orm:"auto_now_add;type(datetime)" json:"lastLogin,omitempty"`
 	LastIp        string     `orm:"size(200)" json:"lastIp,omitempty"`
 	CreateTime    *time.Time `orm:"auto_now_add;type(datetime)" json:"createTime,omitempty"`
@@ -74,6 +76,10 @@ func (u *userModel) AddUser(dbname string, m *User) (id string, err error) {
 		return "", fmt.Errorf("o is nil")
 	}
 	m.Id = "user-" + uuid.New().String()
+	m.ApiKey, err = encrypt.GenerateKey()
+	if err != nil {
+		return "", err
+	}
 	passwd, err := base64.StdEncoding.DecodeString(m.Password)
 	if err != nil {
 		logs.Error("decode base64 for password failed error: %s", err)
@@ -120,15 +126,12 @@ func (*userModel) GetUserByName(dbname string, name string) (v *User, err error)
 	return v, nil
 }
 
-func (*userModel) GetUserDetail(name string) (user *User, err error) {
-	user = &User{Name: name}
-
-	err = orm.NewOrm().Read(user, "Name")
-	if err != nil {
+func (*userModel) GetUserByApiKey(apiKey string) (v *User, err error) {
+	v = new(User)
+	if err = orm.NewOrmUsingDB("default").QueryTable(TABLE_USER).Filter("apiKey", apiKey).One(v); err != nil {
 		return nil, err
 	}
-
-	return user, nil
+	return v, nil
 }
 
 func (*userModel) EnsureUser(m *User) (*User, error) {
@@ -185,6 +188,20 @@ func (*userModel) UpdateUserById(m *User) (err error) {
 	v.Department = m.Department
 	_, err = orm.NewOrm().Update(v)
 	return
+}
+
+func (*userModel) UpdateApiKeyById(id string) (key string, err error) {
+	v := &User{Id: id}
+	if err = orm.NewOrm().Read(v, "id"); err != nil {
+		return "", err
+	}
+
+	v.ApiKey, err = encrypt.GenerateKey()
+	if err != nil {
+		return "", err
+	}
+	_, err = orm.NewOrm().Update(v)
+	return v.ApiKey, nil
 }
 
 func (*userModel) DeleteUser(id string) (err error) {
