@@ -12,7 +12,18 @@ type PolicyController struct {
 	DefaultController
 }
 
-func (uc PolicyController) CreatePolicy() {
+func (uc *PolicyController) Prepare() {
+	uc.DefaultController.Prepare()
+	logs.Error(uc.User.Roles, uc.User.Id)
+	if !models.HasPolicyPermission(uc.User.Roles) {
+		message := fmt.Sprintf("no permission to manager policy")
+		errMes := uc.HandleErrorStatusBadRequest(401, message, "")
+		logs.Error(errMes)
+		return
+	}
+}
+
+func (uc *PolicyController) CreatePolicy() {
 	var policy models.Policy
 	if err := json.Unmarshal(uc.Ctx.Input.RequestBody, &policy); err != nil {
 		message := fmt.Sprintf("get body error. %+v", err)
@@ -21,6 +32,7 @@ func (uc PolicyController) CreatePolicy() {
 		return
 	}
 
+	policy.UserId = uc.User.Id
 	id, err := models.PolicyModel.AddPolicy(&policy)
 	if err != nil {
 		message := fmt.Sprintf("create policy failed, error: %s", err.Error())
@@ -41,7 +53,7 @@ func (uc PolicyController) CreatePolicy() {
 	logs.Info(mesg)
 }
 
-func (uc PolicyController) DeletePolicy() {
+func (uc *PolicyController) DeletePolicy() {
 	policyId := uc.GetString(":policyId")
 	if policyId == "" {
 		message := fmt.Sprintf("policy id is null")
@@ -50,7 +62,22 @@ func (uc PolicyController) DeletePolicy() {
 		return
 	}
 
-	err := models.PolicyModel.DeletePolicy(policyId)
+	policy, err := models.PolicyModel.GetPolicyById(policyId)
+	if err != nil {
+		message := fmt.Sprintf("policy does not exist")
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETE_POLICY_FAILED, message, "")
+		logs.Error(errMes)
+		return
+	}
+
+	if policy.UserId != uc.User.Id {
+		message := fmt.Sprintf("policy does not exist")
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETE_POLICY_FAILED, message, "")
+		logs.Error(errMes)
+		return
+	}
+
+	err = models.PolicyModel.DeletePolicy(policyId)
 	if err != nil {
 		message := fmt.Sprintf("delete policy failed, error: %s", err)
 		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETE_POLICY_FAILED, message, fmt.Sprintf("policy id is %s", policyId))
@@ -70,15 +97,16 @@ func (uc PolicyController) DeletePolicy() {
 	logs.Info(mesg)
 }
 
-func (uc PolicyController) GetPolicyList() {
+func (uc *PolicyController) GetPolicyList() {
 	at := uc.GetString("attestation")
-	list, err := models.PolicyModel.GetPolicies(at)
+	logs.Debug(uc.User.Id)
+	list, err := models.PolicyModel.GetPolicies(at, uc.User.Id)
 	if err != nil {
 		logs.Error("get policy list failed, error: %s", err)
 	}
 	mesg, baseRes := uc.HandleSuccess(200, "get policy info successful", "")
 	logs.Info(mesg)
-
+	logs.Debug(list)
 	res := DataRes{
 		*baseRes,
 		list,

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/beego/beego/v2/core/logs"
 	beego "github.com/beego/beego/v2/server/web"
-	"io"
+	"github.com/dgrijalva/jwt-go"
 	"net/http"
-	"os"
+	"tcas/consts"
+	"tcas/initial"
+	"tcas/models"
 )
 
 type BaseRes struct {
@@ -31,48 +33,13 @@ type PolicyIdRes struct {
 }
 
 type RequestMessageData struct {
-	URI    string
-	Method string
-
-	User string
-	IP   string
-
+	URI            string
+	Method         string
+	User           string
+	IP             string
 	ResponseStatus int
 	RequestBody    string
 	RequestAuth    string
-}
-
-type KeyInfo struct {
-	FileId     string `json:"fileId"`
-	Key        string `json:"key"`
-	Type       string `json:"type"`
-	CreateTime string `json:"createTime"`
-	UpdateTime string `json:"updateTime"`
-}
-
-type SecretKeyRes struct {
-	BaseRes
-	Data KeyInfo `json:"data"`
-}
-
-type KmsRes struct {
-	BaseRes
-	FileId string `json:"fileId"`
-}
-
-func WriteFile(filename string, data []byte, perm os.FileMode) error {
-	f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, perm)
-	if err != nil {
-		return err
-	}
-	n, err := f.Write(data)
-	if err == nil && n < len(data) {
-		err = io.ErrShortWrite
-	}
-	if err1 := f.Close(); err == nil {
-		err = err1
-	}
-	return err
 }
 
 func ErrorRes(code int, message string) *BaseRes {
@@ -84,14 +51,73 @@ func ErrorRes(code int, message string) *BaseRes {
 
 type DefaultController struct {
 	beego.Controller
+	User models.User
+}
+
+type PageRes struct {
+	BaseRes
+	DataPage *models.DataPage `json:"dataPage,omitempty"`
+}
+
+type UserIdRes struct {
+	BaseRes
+	UserID string `json:"userID"`
+}
+
+type UserRes struct {
+	BaseRes
+	User *models.User
 }
 
 func (f *DefaultController) Prepare() {
+	authString := f.Ctx.Input.Header("Authorization")
+	token, err := jwt.Parse(authString, func(token *jwt.Token) (interface{}, error) {
+		// since we only use the one private key to sign the tokens,
+		// we also only use its public counterpart to verify
+		return initial.RsaPublicKey, nil
+	})
+	errResult := BaseRes{}
+	switch err.(type) {
+	case nil: // no error
+		if !token.Valid { // but may still be invalid
+			errResult.Code = consts.ERROR_CODE_LOGIN_EXPIRED
+			errResult.Message = "Token Invalid ! "
+		}
 
+	case *jwt.ValidationError:
+		errResult.Code = consts.ERROR_CODE_LOGIN_EXPIRED
+		errResult.Message = err.Error()
+
+	default: // something else went wrong
+		errResult.Code = consts.ERROR_CODE_LOGIN_EXPIRED
+		errResult.Message = err.Error()
+	}
+
+	if err != nil {
+		errMes := f.HandleErrorStatusUnauthorized(errResult.Code, errResult.Message, "")
+		logs.Error(errMes)
+		return
+	}
+	claim := token.Claims.(jwt.MapClaims)
+	id, ok := claim["userId"].(string)
+	if !ok {
+		errMes := f.HandleErrorStatusUnauthorized(consts.ERROR_CODE_LOGIN_EXPIRED, "illegal token", "")
+		logs.Error(errMes)
+		return
+	}
+	User, err := models.UserModel.GetUserById(id)
+	if err != nil {
+		errMes := f.HandleErrorStatusUnauthorized(consts.ERROR_CODE_LOGIN_EXPIRED, "illegal user", "")
+		logs.Error(errMes)
+		return
+	}
+	f.User = *User
+	f.User.Password = ""
+
+	logs.Debug("user %s try to request %s", f.User.Name, f.Ctx.Input.URL())
 }
 
 func (f *DefaultController) HandleErrorStatusBadRequest(code int, message string, addition string) (errMesg string) {
-	var userName string
 
 	clientIp := f.Ctx.Request.Header.Get("X-Real-ip")
 	if clientIp == "" {
@@ -100,7 +126,7 @@ func (f *DefaultController) HandleErrorStatusBadRequest(code int, message string
 	requestInfo, err := json.Marshal(RequestMessageData{
 		URI:            f.Ctx.Input.URI(),
 		Method:         f.Ctx.Request.Method,
-		User:           userName,
+		User:           f.User.Name,
 		IP:             clientIp,
 		ResponseStatus: code,
 	})
@@ -117,8 +143,6 @@ func (f *DefaultController) HandleErrorStatusBadRequest(code int, message string
 }
 
 func (f *DefaultController) HandleErrorStatusUnauthorized(code int, message string, addition string) (errMesg string) {
-	var userName string
-
 	clientIp := f.Ctx.Request.Header.Get("X-Real-ip")
 	if clientIp == "" {
 		clientIp = f.Ctx.Input.IP()
@@ -126,7 +150,7 @@ func (f *DefaultController) HandleErrorStatusUnauthorized(code int, message stri
 	requestInfo, err := json.Marshal(RequestMessageData{
 		URI:            f.Ctx.Input.URI(),
 		Method:         f.Ctx.Request.Method,
-		User:           userName,
+		User:           f.User.Name,
 		IP:             clientIp,
 		ResponseStatus: code,
 	})
@@ -142,8 +166,6 @@ func (f *DefaultController) HandleErrorStatusUnauthorized(code int, message stri
 }
 
 func (f *DefaultController) HandleSuccess(code int, message string, addition string) (info string, baseRes *BaseRes) {
-	var userName string
-
 	baseRes = &BaseRes{
 		code,
 		message,
@@ -156,7 +178,7 @@ func (f *DefaultController) HandleSuccess(code int, message string, addition str
 	requestInfo, err := json.Marshal(RequestMessageData{
 		URI:            f.Ctx.Input.URI(),
 		Method:         f.Ctx.Request.Method,
-		User:           userName,
+		User:           f.User.Name,
 		IP:             clientIp,
 		ResponseStatus: code,
 	})

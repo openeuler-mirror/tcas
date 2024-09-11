@@ -18,6 +18,7 @@ type SecretInfo struct {
 	Id         string     `orm:"pk;size(255)" json:"id,omitempty"`
 	Secret     string     `json:"secret,omitempty"`
 	Name       string     `json:"name,omitempty"`
+	UserId     string     `orm:"size(255)" json:"userId,omitempty"`
 	CreateTime *time.Time `orm:"auto_now_add;type(datetime)" json:"createTime,omitempty"`
 	UpdateTime *time.Time `orm:"auto_now;type(datetime)" json:"updateTime,omitempty"`
 }
@@ -85,9 +86,9 @@ func (k *SecretModle) DeleteSecretById(id string) error {
 	return nil
 }
 
-func (k *SecretModle) GetSecretList() ([]*SecretInfo, error) {
+func (k *SecretModle) GetSecretList(userId string) ([]*SecretInfo, error) {
 	v := make([]*SecretInfo, 0)
-	if _, err := orm.NewOrm().QueryTable(TABLE_SECRET).All(&v, "Id", "Name", "CreateTime", "UpdateTime"); err != nil {
+	if _, err := orm.NewOrm().QueryTable(TABLE_SECRET).Filter("userId", userId).All(&v, "Id", "Name", "userId", "CreateTime", "UpdateTime"); err != nil {
 		return v, err
 	}
 

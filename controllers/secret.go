@@ -24,7 +24,13 @@ type SecretRes struct {
 }
 
 func (c *SecretController) Prepare() {
-
+	c.DefaultController.Prepare()
+	if !models.HasSecretPermission(c.User.Roles) {
+		message := fmt.Sprintf("no permission to manager secret")
+		errMes := c.HandleErrorStatusBadRequest(401, message, "")
+		logs.Error(errMes)
+		return
+	}
 }
 
 func (c *SecretController) AddSecret() {
@@ -44,6 +50,7 @@ func (c *SecretController) AddSecret() {
 		return
 	}
 
+	secret.UserId = c.User.Id
 	id, err := models.SecretMd.InsertSecret(&secret)
 	if err != nil {
 		message := fmt.Sprintf("create secret failed, error: %s", err.Error())
@@ -82,6 +89,7 @@ func (c *SecretController) UpdateSecret() {
 		return
 	}
 
+	secretInfo.UserId = c.User.Id
 	id, err := models.SecretMd.UpdateSecret(secretInfo)
 	if err != nil {
 		message := fmt.Sprintf("update secret failed, error %s", err.Error())
@@ -112,9 +120,16 @@ func (c *SecretController) DeleteSecret() {
 		return
 	}
 
-	_, err := models.SecretMd.GetSecretById(id)
+	secret, err := models.SecretMd.GetSecretById(id)
 	if err != nil {
 		message := fmt.Sprintf("get secret info failed, secret id : %s, error:%s", id, err.Error())
+		errMsg := c.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETESECRET_ERROR, message, "")
+		logs.Error(errMsg)
+		return
+	}
+
+	if secret.UserId != c.User.Id {
+		message := fmt.Sprintf("secret  doesn't exist")
 		errMsg := c.HandleErrorStatusBadRequest(consts.ERROR_CODE_DELETESECRET_ERROR, message, "")
 		logs.Error(errMsg)
 		return
@@ -131,11 +146,11 @@ func (c *SecretController) DeleteSecret() {
 }
 
 func (c *SecretController) GetSecretBriefList() {
-	list, err := models.SecretMd.GetSecretList()
+	list, err := models.SecretMd.GetSecretList(c.User.Id)
 	if err != nil {
-		logs.Error("get secret list faield, error: %s", err)
+		logs.Error("get secret list failed, error: %s", err)
 	}
-	mesg, baseRes := c.HandleSuccess(200, "delete secret info successful", "")
+	mesg, baseRes := c.HandleSuccess(200, "get secret list successful", "")
 	logs.Info(mesg)
 
 	res := DataRes{

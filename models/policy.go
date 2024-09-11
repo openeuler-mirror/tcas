@@ -27,17 +27,14 @@ type Policy struct {
 	No              int        `orm:"auto" json:"no,omitempty"`
 	Id              string     `orm:"unique;size(255)" json:"policy_id,omitempty"`
 	Rego            string     `orm:"size(2048)" json:"policy_rego,omitempty"`
-	Name            string     `orm:"unique;size(200)" json:"policy_name,omitempty"`
+	Name            string     `orm:"size(200)" json:"policy_name,omitempty"`
 	AttestationType string     `orm:"size(2048)" json:"attestation_type,omitempty"`
 	Hash            string     `orm:"size(255)" json:"policy_hash,omitempty"`
 	Signature       string     `orm:"size(255)" json:"policy_signature,omitempty"`
 	Version         int        `orm:"size(255)" json:"version,omitempty"`
+	UserId          string     `orm:"size(255)" json:"userId,omitempty"`
 	CreateTime      *time.Time `orm:"auto_now_add;type(datetime)" json:"createTime,omitempty"`
 	UpdateTime      *time.Time `orm:"auto_now;type(datetime)" json:"updateTime,omitempty"`
-}
-
-type UserStatistics struct {
-	Total int64 `json:"total,omitempty"`
 }
 
 type PolicyFilterCondition struct {
@@ -96,7 +93,7 @@ func (m *policyModel) DeletePolicy(id string) (err error) {
 	return nil
 }
 
-func (m *policyModel) GetPolicies(attestationType string) ([]*Policy, error) {
+func (m *policyModel) GetPolicies(attestationType, userId string) ([]*Policy, error) {
 	if !m.CheckPolicyAttestationType(attestationType) {
 		return nil, fmt.Errorf("attestation type %s in not support", attestationType)
 	}
@@ -104,7 +101,7 @@ func (m *policyModel) GetPolicies(attestationType string) ([]*Policy, error) {
 	o := orm.NewOrm()
 	qs := o.QueryTable(TABLE_POLICY)
 	var policies []*Policy
-	cond := orm.NewCondition().And("AttestationType", attestationType)
+	cond := orm.NewCondition().And("AttestationType", attestationType).And("UserId", userId)
 	qs = qs.SetCond(cond)
 
 	_, err := qs.OrderBy("-updateTime", "-createTime").All(&policies)
@@ -118,14 +115,14 @@ func (m *policyModel) GetPolicies(attestationType string) ([]*Policy, error) {
 	return policies, nil
 }
 
-func (m *policyModel) GetLatestPolicy(attestationType string) (*Policy, error) {
+func (m *policyModel) GetLatestPolicy(attestationType, userId string) (*Policy, error) {
 	if !m.CheckPolicyAttestationType(attestationType) {
 		return nil, fmt.Errorf("attestation type %s in not support", attestationType)
 	}
 	var policy Policy
 	o := orm.NewOrm()
 	qs := o.QueryTable(TABLE_POLICY)
-	cond := orm.NewCondition().And("AttestationType", attestationType)
+	cond := orm.NewCondition().And("AttestationType", attestationType).And("userId", userId)
 	qs = qs.SetCond(cond)
 	err := qs.OrderBy("-updateTime").Limit(1).One(&policy)
 	if err != nil {
