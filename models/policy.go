@@ -56,6 +56,10 @@ func (m *policyModel) AddPolicy(p *Policy) (id string, err error) {
 	if p.AttestationType == "" {
 		p.AttestationType = NodeType
 	}
+
+	if p.AttestationType != NodeType && p.AttestationType != ClusterType {
+		return "", fmt.Errorf("attestation type is not support")
+	}
 	_, err = o.Insert(p)
 	if err != nil {
 		return "", err

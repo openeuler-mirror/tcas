@@ -25,6 +25,7 @@ func InitDbSqlite() {
 	}
 	create_table("default")
 	insertAdminUser("default")
+	insertDefaultUser("default")
 }
 
 func create_table(dbname string) {
@@ -44,6 +45,24 @@ func insertAdminUser(dbname string) {
 			Roles:      models.Admin,
 			Status:     "first",
 			Display:    "超级管理员",
+			Department: "other",
+		}
+
+		if _, err := models.UserModel.AddUser(dbname, &user); err != nil {
+			errMes := fmt.Sprintf("create admin user failed, errer is %s", err.Error())
+			panic(errMes)
+		}
+	}
+}
+
+func insertDefaultUser(dbname string) {
+	if _, err := models.UserModel.GetUserByName(dbname, "keeper"); err != nil {
+		user := models.User{
+			Name:       "keeper",
+			Password:   "a2VlcGVy",
+			Roles:      fmt.Sprintf("%s,%s", models.SecretUser, models.PolicyUser),
+			Status:     "first",
+			Display:    "keeper",
 			Department: "other",
 		}
 
