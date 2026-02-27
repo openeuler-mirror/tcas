@@ -1,10 +1,12 @@
 package models
 
 const (
-	TABLE_POLICY = "t_policy"
-	TABLE_NONCE  = "t_nonce"
-	TABLE_SECRET = "t_secret"
-	TABLE_USER   = "t_user"
+	TABLE_POLICY         = "t_policy"
+	TABLE_NONCE          = "t_nonce"
+	TABLE_SECRET         = "t_secret"
+	TABLE_USER           = "t_user"
+	TABLE_CLUSTER        = "t_cluster"
+	TABLE_POLICY_HISTORY = "t_policy_history"
 )
 
 type Resp struct {

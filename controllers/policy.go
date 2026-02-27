@@ -53,6 +53,43 @@ func (uc *PolicyController) CreatePolicy() {
 	logs.Info(mesg)
 }
 
+func (uc *PolicyController) UpdatePolicy() {
+	var policy models.Policy
+	if err := json.Unmarshal(uc.Ctx.Input.RequestBody, &policy); err != nil {
+		message := fmt.Sprintf("get body error. %+v", err)
+		errMes := uc.HandleErrorStatusBadRequest(consts.ERROR_CODE__JSON__UNMARSHAL_FAILED, message, "")
+		logs.Error(errMes)
+		return
+	}
+
+	if policy.Id == "" {
+		uc.HandleErrorStatusBadRequest(consts.ERROR_CODE__PARAMETER_ERROR, "policy id is required for update", "")
+		return
+	}
+
+	oldPolicy, err := models.PolicyModel.GetPolicyById(policy.Id)
+	if err != nil || oldPolicy.UserId != uc.User.Id {
+		uc.HandleErrorStatusBadRequest(401, "no permission or policy not found", "")
+		return
+	}
+
+	err = models.PolicyModel.UpdatePolicyById(&policy)
+	if err != nil {
+		message := fmt.Sprintf("update policy failed: %v", err)
+		uc.HandleErrorStatusBadRequest(consts.ERROR_CODE_UPDATESECRET_FAILED, message, "")
+		return
+	}
+
+	mesg, baseRes := uc.HandleSuccess(200, "update policy successful", "")
+	res := PolicyIdRes{
+		*baseRes,
+		policy.Id,
+	}
+	uc.Data["json"] = res
+	uc.ServeJSON()
+	logs.Info(mesg)
+}
+
 func (uc *PolicyController) DeletePolicy() {
 	policyId := uc.GetString(":policyId")
 	if policyId == "" {
@@ -114,4 +151,35 @@ func (uc *PolicyController) GetPolicyList() {
 	uc.Data["json"] = res
 	uc.ServeJSON()
 	return
+}
+
+func (uc *PolicyController) GetPolicyHistory() {
+	historyId := uc.Ctx.Input.Param(":historyId")
+	if historyId == "" {
+		uc.HandleErrorStatusBadRequest(consts.ERROR_CODE__PARAMETER_ERROR, "historyId is null", "")
+		return
+	}
+
+	history, err := models.PolicyModel.GetPolicyHistoryById(historyId)
+	if err != nil {
+		message := fmt.Sprintf("get history failed: %v", err)
+		uc.HandleErrorStatusBadRequest(consts.ERROR_CODE__PARAMETER_ERROR, message, "")
+		return
+	}
+
+	if history.UserId != uc.User.Id {
+		logs.Warn("user %s tried to access history %s belonging to %s", uc.User.Id, historyId, history.UserId)
+		uc.HandleErrorStatusUnauthorized(401, "no permission to access this history", "")
+		return
+	}
+
+	mesg, baseRes := uc.HandleSuccess(200, "get history success", "")
+	logs.Info(mesg)
+
+	res := DataRes{
+		*baseRes,
+		history,
+	}
+	uc.Data["json"] = res
+	uc.ServeJSON()
 }

@@ -37,8 +37,18 @@ func init() {
 		beego.NSRouter("", &controllers.PolicyController{}, "post:CreatePolicy"),
 		beego.NSRouter("/:policyId", &controllers.PolicyController{}, "delete:DeletePolicy"),
 		beego.NSRouter("", &controllers.PolicyController{}, "get:GetPolicyList"),
+		beego.NSRouter("/history/:historyId", &controllers.PolicyController{}, "get:GetPolicyHistory"),
+		beego.NSRouter("/update", &controllers.PolicyController{}, "put:UpdatePolicy"),
 	)
 	beego.AddNamespace(ns_policy)
+
+	ns_cluster := beego.NewNamespace("/v1/trustedcluster/policygroup",
+		beego.NSRouter("", &controllers.ClusterController{}, "post:CreateCluster"),
+		beego.NSRouter("/:cluster_id/policy", &controllers.ClusterController{}, "post:AddPolicyToCluster"),
+		beego.NSRouter("/:cluster_id/policy/:policy_id", &controllers.ClusterController{}, "delete:RemovePolicyFromCluster"),
+		beego.NSRouter("/:cluster_id", &controllers.ClusterController{}, "get:GetClusterPolicies"),
+	)
+	beego.AddNamespace(ns_cluster)
 
 	ns_pki := beego.NewNamespace("/v1/pki",
 		beego.NSRouter("/ca", &controllers.EndorsementController{}, "get:GetCa"),
