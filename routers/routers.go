@@ -28,6 +28,8 @@ func init() {
 
 	ns_attest := beego.NewNamespace("/v1/attest",
 		beego.NSRouter("", &controllers.AttestationController{}, "post:AttestTrustNode"),
+		beego.NSRouter("/cluster", &controllers.ClusterAttestationController{}, "post:AttestCluster"),
+		beego.NSRouter("/cluster/node/:cluster_id", &controllers.ClusterAttestationController{}, "post:AttestClusterNode"),
 		beego.NSRouter("/getsecret", &controllers.AttestationController{}, "post:GetSecretById"),
 		beego.NSRouter("/getcert", &controllers.AttestationController{}, "post:AttestForGetCert"),
 	)
